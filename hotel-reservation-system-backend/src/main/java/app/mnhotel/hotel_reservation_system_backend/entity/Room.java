@@ -1,5 +1,7 @@
 package app.mnhotel.hotel_reservation_system_backend.entity;
 
+import java.math.BigDecimal;
+
 import com.fasterxml.jackson.annotation.JsonBackReference;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
@@ -25,22 +27,34 @@ public class Room {
 	@Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
-	
+
 	@ManyToOne(fetch = FetchType.EAGER)
     @JoinColumn(name = "hotel_id")
  	@JsonBackReference
  	private Hotel hotel;
-	
+
 	@Column(name="room_number")
     private String roomNumber;
-	
+
 	@Column(name="type")
 	private String type;
-	
-	@Column(name="price_per_night")
-	private Integer pricePerNight;
-	
-	@Column(name="availbility")
-	private Boolean availbility;
+
+	@Column(name="price_per_night", precision = 10, scale = 2)
+	private BigDecimal pricePerNight;
+
+	// Huéspedes máximos
+	@Column(name="capacity")
+	private Integer capacity;
+
+	// Habitación a la venta. NO indica disponibilidad: esa se deriva de las reservas (ADR-005)
+	@Column(name="active")
+	@Builder.Default
+	private Boolean active = true;
+
+	@Column(name="description")
+	private String description;
+
+	@Column(name="image_url")
+	private String imageUrl;
 
 }

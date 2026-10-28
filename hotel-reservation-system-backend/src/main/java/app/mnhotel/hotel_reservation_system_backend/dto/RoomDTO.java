@@ -1,5 +1,7 @@
 package app.mnhotel.hotel_reservation_system_backend.dto;
 
+import java.math.BigDecimal;
+
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -13,9 +15,10 @@ public class RoomDTO {
 	private Long id;
     private String roomNumber;
     private String type;
-    private Integer pricePerNight;
-    private Boolean availability;
+    private BigDecimal pricePerNight;
+    private Integer capacity;
+    private String imageUrl;
 
-    // Información del hotel asociado (opcional)
-    private Long hotelId;  // O usa HotelDTO si prefieres incluir detalles del hotel
+    // Información resumida del hotel asociado
+    private HotelSummaryDTO hotel;
 }
