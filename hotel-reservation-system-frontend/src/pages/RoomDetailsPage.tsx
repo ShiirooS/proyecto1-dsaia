@@ -2,11 +2,12 @@ import { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import Header from '../components/Layouts/Header'
 import HeaderBanner from '../components/Layouts/HeaderBanner'
-import Button from '../components/Buttons/Button'
 import { getRoomById, RoomDTO } from '../services/roomService';
 import { fetchHotelById, HotelDTO } from '../services/hotelService';
 import { FaBath, FaMapMarkerAlt, FaSnowflake, FaStar, FaTv, FaWifi } from 'react-icons/fa';
 import ConfirmBookingModal from '../components/Modals/ConfirmBookingModal';
+import AvailabilityCalendar, { type DateRange } from '../components/calendar/AvailabilityCalendar';
+import { nightsBetween } from '../components/calendar/calendarUtils';
 
 export default function RoomDetails() {
   const { id } = useParams<{ id: string }>(); // Obtén el id de los parámetros de la URL
@@ -14,6 +15,8 @@ export default function RoomDetails() {
   const [hotel, setHotel] = useState<HotelDTO | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [range, setRange] = useState<DateRange>({});
+  const [guests, setGuests] = useState(1);
 
   const openModal = () => setIsModalOpen(true);
   const closeModal = () => setIsModalOpen(false);
@@ -49,8 +52,21 @@ export default function RoomDetails() {
       setRoom(null);
       setHotel(null);
       setError(null);
+      setRange({});
+      setGuests(1);
     };
   }, [id]);
+
+  const booking =
+    room && range.checkIn && range.checkOut
+      ? {
+          roomId: room.id,
+          checkIn: range.checkIn,
+          checkOut: range.checkOut,
+          guests,
+          total: nightsBetween(range.checkIn, range.checkOut) * room.pricePerNight,
+        }
+      : null;
 
   if (error) {
     return <div>{error}</div>;
@@ -105,7 +121,7 @@ export default function RoomDetails() {
                         </ul>
                       </div>
 
-                      {/* Disposición en 2 columnas para Location, Province, Capacity, Availability */}
+                      {/* Disposición en 2 columnas para Location, Province, Capacity */}
                       <div className="mt-6 grid grid-cols-2 gap-x-4 gap-y-8 sm:grid-cols-2 flex items-center">
                         <div className="sm:col-span-1 mb-4">
                           <h3 className="text-lg leading-6 font-medium text-gray-900">
@@ -121,12 +137,6 @@ export default function RoomDetails() {
                           <h3 className="text-lg leading-6 font-medium text-gray-900">Capacity</h3>
                           <p className="mt-1 text-gray-500">{room.capacity} Guests</p>
                         </div>
-                        <div className="sm:col-span-1 mb-4">
-                          <h3 className="text-lg leading-6 font-medium text-gray-900">Availability</h3>
-                          <p className="mt-1 text-gray-500">
-                            {room.availability ? 'Available' : 'Not Available'}
-                          </p>
-                        </div>
                       </div>
 
                       {/* Nueva sección para la descripción */}
@@ -136,11 +146,36 @@ export default function RoomDetails() {
                       </div>
                     </div>
 
-                    <div className="mt-8">
-                      <Button content="Book now" className="w-full text-center" onClick={openModal} />
-                      {/* Render the modal only if it's open */}
-                      {isModalOpen && (
-                        <ConfirmBookingModal isOpen={isModalOpen} closeModal={closeModal} />
+                    <div className="mt-8 space-y-4">
+                      <AvailabilityCalendar
+                        roomId={room.id}
+                        pricePerNight={room.pricePerNight}
+                        value={range}
+                        onChange={setRange}
+                      />
+                      <div>
+                        <label htmlFor="guests" className="block text-lg font-medium text-gray-900">Guests</label>
+                        <select
+                          id="guests"
+                          value={guests}
+                          onChange={(e) => setGuests(Number(e.target.value))}
+                          className="mt-1 w-full rounded-md border border-gray-300 p-2"
+                        >
+                          {Array.from({ length: room.capacity }, (_, i) => i + 1).map((n) => (
+                            <option key={n} value={n}>{n}</option>
+                          ))}
+                        </select>
+                      </div>
+                      <button
+                        type="button"
+                        disabled={!booking}
+                        onClick={openModal}
+                        className="w-full rounded-lg bg-orange-600 px-5 py-2.5 text-center text-sm font-medium text-white transition hover:bg-orange-700 focus:outline-none focus:ring focus:ring-orange-400 disabled:cursor-not-allowed disabled:bg-gray-300"
+                      >
+                        Book now
+                      </button>
+                      {isModalOpen && booking && (
+                        <ConfirmBookingModal isOpen={isModalOpen} closeModal={closeModal} booking={booking} />
                       )}
                     </div>
                   </div>

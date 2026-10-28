@@ -1,6 +1,7 @@
 package app.mnhotel.hotel_reservation_system_backend.controller;
 
 import app.mnhotel.hotel_reservation_system_backend.dto.ReservationDTO;
+import app.mnhotel.hotel_reservation_system_backend.exception.BusinessException;
 import app.mnhotel.hotel_reservation_system_backend.response.ApiResponse;
 import app.mnhotel.hotel_reservation_system_backend.service.ReservationService;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -30,6 +31,9 @@ public class ReservationController {
         try{
             reservationService.createReservation(reservationRequest);
             return ResponseEntity.ok(new ApiResponse("La reservacion se registro exitosamente"));
+        }catch (BusinessException e){
+            // 4xx de negocio (p. ej. 409 ROOM_NOT_AVAILABLE): no convertir en 500
+            throw e;
         }catch (Exception e){
             e.printStackTrace();
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
@@ -50,6 +54,8 @@ public class ReservationController {
     public ResponseEntity<ApiResponse> updateReservation(@PathVariable Long id, @RequestBody ReservationDTO reservationDTO){
         try{
             return ResponseEntity.ok(reservationService.updateReservation(id,reservationDTO));
+        }catch(BusinessException e){
+            throw e;
         }catch(Exception e){
             e.printStackTrace();
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)

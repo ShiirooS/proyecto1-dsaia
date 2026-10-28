@@ -1,7 +1,9 @@
 package app.mnhotel.hotel_reservation_system_backend.service;
 
+import java.time.LocalDate;
 import java.util.List;
 import java.util.Optional;
+import app.mnhotel.hotel_reservation_system_backend.dto.RoomAvailabilityDTO;
 import app.mnhotel.hotel_reservation_system_backend.dto.RoomDTO;
 import app.mnhotel.hotel_reservation_system_backend.response.ApiResponse;
 
@@ -11,5 +13,6 @@ public interface RoomService {
 	public void deleteRoom(Long id) throws Exception;
 	public ApiResponse updateRoomData(RoomDTO hotelRequest) throws Exception;
 	public Optional<RoomDTO> getRoom(Long id) throws Exception;
-	public List<RoomDTO> getAllRoom() throws Exception;
+	public List<RoomDTO> getAllRoom(boolean activeOnly) throws Exception;
+	public RoomAvailabilityDTO getAvailability(Long id, LocalDate from, LocalDate to);
 }

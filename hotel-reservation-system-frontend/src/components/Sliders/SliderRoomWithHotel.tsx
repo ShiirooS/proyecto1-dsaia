@@ -17,7 +17,7 @@ export default function SliderHotels() {
     async function loadRoomsAndHotels() {
       try {
         setLoading(true);
-        const rooms = await fetchRooms();
+        const rooms = await fetchRooms({ activeOnly: true });
         
         const roomsWithHotelsPromises = rooms.map(async (room) => {
           if (room.hotelId) {
@@ -80,6 +80,7 @@ export default function SliderHotels() {
             {visibleCards.map((room, index) => (
               <div key={index} className="w-90 p-1" >
               <CardHotel
+                  id={room.id}
                   name={room.hotel?.name}
                   price={room.pricePerNight}
                   location={room.hotel?.location}

@@ -2,6 +2,7 @@ import { Link } from 'react-router-dom';
 
 // CardSlider.tsx
 interface CardProps {
+    id: number;
     name: string;
     location: string;
     description: string;
@@ -10,12 +11,12 @@ interface CardProps {
     imageUrl: string;
 }
   
-export default function CardHotelSlider({ name, price, location, imageUrl,rating }: CardProps) {
+export default function CardHotelSlider({ id, name, price, location, imageUrl,rating }: CardProps) {
  
 
   return (
     <div className="max-w-sm bg-white rounded-lg shadow-md">
-       <Link to="/productDetail">
+       <Link to={`/roomDetail/${id}`}>
         <img
             src={imageUrl}
             alt="Hotel Image"

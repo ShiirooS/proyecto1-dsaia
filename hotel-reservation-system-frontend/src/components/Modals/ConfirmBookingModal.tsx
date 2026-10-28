@@ -2,21 +2,28 @@ import React, { useState } from 'react';
 
 import { IoCloseOutline } from "react-icons/io5";
 
+export interface BookingSelection {
+  roomId: number;
+  checkIn: string;
+  checkOut: string;
+  guests: number;
+  total: number;
+}
+
 interface ModalProps {
   isOpen: boolean;
   closeModal: () => void;
+  booking: BookingSelection;
 }
 
-export default function ConfirmBookingModal({ closeModal, isOpen }: ModalProps) {
+export default function ConfirmBookingModal({ closeModal, isOpen, booking }: ModalProps) {
   const [name, setName] = useState('');
   const [phone, setPhone] = useState('');
-  const [checkIn, setCheckIn] = useState('');
-  const [checkOut, setCheckOut] = useState('');
 
   const handleSubmit = (event: React.FormEvent) => {
     event.preventDefault();
     // Handle form submission logic (e.g., send data to an API)
-    console.log('Booking Details:', { name, phone, checkIn, checkOut });
+    console.log('Booking Details:', { name, phone, ...booking });
     closeModal(); // Close the modal after submission
   };
 
@@ -70,30 +77,16 @@ export default function ConfirmBookingModal({ closeModal, isOpen }: ModalProps) 
               required
             />
           </div>
-          <div className="flex justify-between space-x-4">
-            <div className="w-1/2">
-              <label htmlFor="checkIn" className="block text-gray-600 font-semibold">Check-in</label>
-              <input
-                id="checkIn"
-                type="date"
-                value={checkIn}
-                onChange={(e) => setCheckIn(e.target.value)}
-                className="w-full border border-gray-300 rounded-md p-2"
-                required
-              />
-            </div>
-            <div className="w-1/2">
-              <label htmlFor="checkOut" className="block text-gray-600 font-semibold">Check-out</label>
-              <input
-                id="checkOut"
-                type="date"
-                value={checkOut}
-                onChange={(e) => setCheckOut(e.target.value)}
-                className="w-full border border-gray-300 rounded-md p-2"
-                required
-              />
-            </div>
-          </div>
+          <dl className="grid grid-cols-2 gap-2 text-gray-600">
+            <dt className="font-semibold">Check-in</dt>
+            <dd>{booking.checkIn}</dd>
+            <dt className="font-semibold">Check-out</dt>
+            <dd>{booking.checkOut}</dd>
+            <dt className="font-semibold">Guests</dt>
+            <dd>{booking.guests}</dd>
+            <dt className="font-semibold">Total</dt>
+            <dd>${booking.total}</dd>
+          </dl>
         </form>
 
         {/* Divider */}

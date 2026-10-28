@@ -19,9 +19,28 @@ interface CreateRoomResponse {
   room: RoomDTO;
 }
 
-export async function fetchRooms(): Promise<RoomDTO[]> {
-  const response = await api.get('/api/room/get-all');
-  return response.data as RoomDTO[];
+/** Fecha calendario `YYYY-MM-DD`, sin zona horaria. */
+export type IsoDate = string;
+
+export interface RoomAvailability {
+  roomId: number;
+  from: IsoDate;
+  to: IsoDate;
+  today: IsoDate;
+  checkInTime: string;
+  maxNights: number;
+  occupiedDates: IsoDate[];
+}
+
+/** Un 204 sin cuerpo llega como `''`, por eso se normaliza a `[]`. */
+export async function fetchRooms(opts?: { activeOnly?: boolean }): Promise<RoomDTO[]> {
+  const response = await api.get('/api/room/get-all', opts?.activeOnly ? { params: { activeOnly: true } } : undefined);
+  return Array.isArray(response.data) ? (response.data as RoomDTO[]) : [];
+}
+
+export async function getAvailability(id: number | string, from: IsoDate, to: IsoDate): Promise<RoomAvailability> {
+  const response = await api.get(`/api/room/get-availability/${toPathId(id)}`, { params: { from, to } });
+  return response.data as RoomAvailability;
 }
 
 export async function createRoom(data: Partial<RoomDTO>): Promise<CreateRoomResponse> {

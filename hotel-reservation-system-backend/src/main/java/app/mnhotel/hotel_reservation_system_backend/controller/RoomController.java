@@ -1,5 +1,9 @@
 package app.mnhotel.hotel_reservation_system_backend.controller;
 
+import app.mnhotel.hotel_reservation_system_backend.dto.RoomAvailabilityDTO;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.format.annotation.DateTimeFormat;
+import java.time.LocalDate;
 import java.util.List;
 import java.util.Optional;
 
@@ -74,9 +78,9 @@ public class RoomController {
 	
 	// API para obtener todos los hoteles.
 	@GetMapping("/get-all")
-	public ResponseEntity<List<RoomDTO>> findAllRoom() {
+	public ResponseEntity<List<RoomDTO>> findAllRoom(@RequestParam(defaultValue = "false") boolean activeOnly) {
 	    try {
-	        List<RoomDTO> roomAll = roomService.getAllRoom();
+	        List<RoomDTO> roomAll = roomService.getAllRoom(activeOnly);
 	        if (roomAll.isEmpty()) {
 	            return ResponseEntity.noContent().build();
 	        }
@@ -108,4 +112,12 @@ public class RoomController {
                                  .body(new ApiResponse("Error al obtener el room: " + e.getMessage()));
         }
     }
+
+	// API para obtener las noches ocupadas de una habitación activa en [from, to] (HU-02).
+	@GetMapping("/get-availability/{id}")
+	public ResponseEntity<RoomAvailabilityDTO> getAvailability(@PathVariable Long id,
+			@RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate from,
+			@RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate to) {
+		return ResponseEntity.ok(roomService.getAvailability(id, from, to));
+	}
 }
