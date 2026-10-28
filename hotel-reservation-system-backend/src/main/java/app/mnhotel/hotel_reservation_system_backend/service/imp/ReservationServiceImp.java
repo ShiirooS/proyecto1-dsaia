@@ -1,5 +1,9 @@
 package app.mnhotel.hotel_reservation_system_backend.service.imp;
 
+import app.mnhotel.hotel_reservation_system_backend.exception.ConflictException;
+import app.mnhotel.hotel_reservation_system_backend.exception.BusinessException;
+import app.mnhotel.hotel_reservation_system_backend.enums.ReservationStatus;
+import org.springframework.http.HttpStatus;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
@@ -77,9 +81,29 @@ public class ReservationServiceImp implements ReservationService{
     }
     
     
+	// HU-02: el servidor es la autoridad final sobre la disponibilidad (también para reservas manuales del ADMIN)
+	private void validateStay(Long roomId, java.time.LocalDate startDate, java.time.LocalDate endDate, Long excludeId) {
+		if (roomId == null || startDate == null || endDate == null) {
+			throw new BusinessException(HttpStatus.BAD_REQUEST, "VALIDATION_ERROR",
+					"roomId, startDate y endDate son obligatorios");
+		}
+		if (!endDate.isAfter(startDate)) {
+			throw new BusinessException(HttpStatus.UNPROCESSABLE_ENTITY, "INVALID_STAY_DATES",
+					"La fecha de salida debe ser posterior a la de llegada");
+		}
+		if (reservationRepository.existsOverlapping(roomId, startDate, endDate, excludeId)) {
+			throw new ConflictException("ROOM_NOT_AVAILABLE", "La habitación no está disponible en esas fechas");
+		}
+	}
+
 	@Override
 	public ReservationDTO createReservation(ReservationDTO reservationDTO) throws Exception {
-		// TODO Auto-generated method stub
+		if (reservationDTO.getStatus() == null) {
+			reservationDTO.setStatus(ReservationStatus.CONFIRMED);
+		}
+		if (reservationDTO.getStatus() == ReservationStatus.CONFIRMED) {
+			validateStay(reservationDTO.getRoomId(), reservationDTO.getStartDate(), reservationDTO.getEndDate(), null);
+		}
 		 Reservation reservation = mapToEntity(reservationDTO);
 		 reservation.setCreatedAt(LocalDateTime.now());
 	     reservation = reservationRepository.save(reservation);
@@ -95,6 +119,13 @@ public class ReservationServiceImp implements ReservationService{
 		//modificar solo los datos que vienen y mantener los existentes
 		ReservationDTO reservationAux= getReservationById(id).orElse(null);
 		if(reservationAux!=null) {
+			Long roomId = reservationDTO.getRoomId() != null ? reservationDTO.getRoomId() : reservationAux.getRoomId();
+			java.time.LocalDate startDate = reservationDTO.getStartDate() != null ? reservationDTO.getStartDate() : reservationAux.getStartDate();
+			java.time.LocalDate endDate = reservationDTO.getEndDate() != null ? reservationDTO.getEndDate() : reservationAux.getEndDate();
+			ReservationStatus status = reservationDTO.getStatus() != null ? reservationDTO.getStatus() : reservationAux.getStatus();
+			if (status == ReservationStatus.CONFIRMED) {
+				validateStay(roomId, startDate, endDate, id);
+			}
 			Reservation reservation = Reservation.builder()
 					.id(id)
 					//este se mantiene ya que no cambia la fecha creada

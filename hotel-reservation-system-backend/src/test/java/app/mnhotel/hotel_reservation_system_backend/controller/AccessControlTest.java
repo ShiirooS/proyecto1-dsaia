@@ -189,7 +189,7 @@ class AccessControlTest {
 	@Test
 	void endpointsHeredadosDeReservasSonSoloDeAdmin() throws Exception {
 		String body = """
-				{"startDate":"2026-12-20T15:00:00","endDate":"2026-12-23T11:00:00","status":"CONFIRMED",
+				{"startDate":"2026-12-20","endDate":"2026-12-23","status":"CONFIRMED",
 				 "roomId":%d,"userId":%d}
 				""".formatted(room.getId(), beto.getId());
 

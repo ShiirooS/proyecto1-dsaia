@@ -1,11 +1,13 @@
 package app.mnhotel.hotel_reservation_system_backend.dto;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+import app.mnhotel.hotel_reservation_system_backend.enums.ReservationStatus;
 
 @Data
 @Builder
@@ -14,9 +16,9 @@ import lombok.NoArgsConstructor;
 public class ReservationDTO {
 
 	 private Long id;
-	 private LocalDateTime startDate;
-	 private LocalDateTime endDate;
-	 private String status;
+	 private LocalDate startDate;
+	 private LocalDate endDate;
+	 private ReservationStatus status;
 	 private LocalDateTime createdAt;
 
 	 // Información del usuario que realizó la reserva
