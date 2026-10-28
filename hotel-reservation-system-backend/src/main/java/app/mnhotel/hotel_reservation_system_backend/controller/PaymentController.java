@@ -16,9 +16,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 import app.mnhotel.hotel_reservation_system_backend.dto.PaymentDTO;
 import app.mnhotel.hotel_reservation_system_backend.response.ApiResponse;
-import app.mnhotel.hotel_reservation_system_backend.service.CurrentUserService;
 import app.mnhotel.hotel_reservation_system_backend.service.PaymentService;
-import app.mnhotel.hotel_reservation_system_backend.service.ReservationService;
 
 @RestController
 @RequestMapping("/api/payment")
@@ -26,27 +24,13 @@ public class PaymentController {
 
 	 @Autowired
 	 private PaymentService paymentService;
-
-	 @Autowired
-	 private ReservationService reservationService;
-
-	 @Autowired
-	 private CurrentUserService currentUserService;
-
-	 // HU-04: un pago pertenece al dueño de su reserva; si no es suyo (ni es ADMIN) responde 404
-	 private void checkReservationOwner(Long reservationId, String notFoundCode, String message) throws Exception {
-		 Long ownerId = reservationId == null ? null
-				 : reservationService.getReservationById(reservationId).map(r -> r.getUserId()).orElse(null);
-		 currentUserService.checkOwnerOrAdmin(ownerId, notFoundCode, message);
-	 }
 	 
 	 @PostMapping("/registration-payment")
-	    public ResponseEntity<ApiResponse> createPayment(@RequestBody PaymentDTO paymentRequest) throws Exception{
+	    public ResponseEntity<ApiResponse> createPayment(@RequestBody PaymentDTO paymentRequest){
 	        
 	        if(paymentRequest==null){
 	            return ResponseEntity.badRequest().body(new ApiResponse("Error: la solicitud están vacíos"));
 	        }
-	        checkReservationOwner(paymentRequest.getIdReservation(), "RESERVATION_NOT_FOUND", "Reservacion no encontrada");
 	        try{
 	        	paymentService.createPayment(paymentRequest);
 	            return ResponseEntity.ok(new ApiResponse("El pago se registro exitosamente"));
@@ -82,10 +66,8 @@ public class PaymentController {
 
 	    @GetMapping("/get-payment-details/{id}")
 	    public ResponseEntity<?> findReservationById(@PathVariable Long id) throws Exception{
-	        PaymentDTO details = paymentService.getPaymentDetails(id);
-	        checkReservationOwner(details.getIdReservation(), "PAYMENT_NOT_FOUND", "Payment no encontrado con ID: " + id);
 	        try{
-	            PaymentDTO payment = details;
+	            PaymentDTO payment = paymentService.getPaymentDetails(id);
 	            if (payment!=null){
 	                return ResponseEntity.ok(payment);
 	            }else {

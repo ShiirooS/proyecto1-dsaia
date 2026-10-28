@@ -28,12 +28,6 @@ public class ReviewController {
 	 	@Autowired
 	 	private CurrentUserService currentUserService;
 
-	 	// HU-04: solo el autor de la reseña o un ADMIN puede modificarla o eliminarla
-	 	private void checkReviewOwner(Long id) throws Exception {
-	 		Long ownerId = reviewService.getReview(id).map(ReviewDTO::getUserId).orElse(null);
-	 		currentUserService.checkOwnerOrAdmin(ownerId, "REVIEW_NOT_FOUND", "Reseña no encontrada con ID: " + id);
-	 	}
-
 	    @PostMapping("/registration-review")
 	    public ResponseEntity<ApiResponse> createReview(@RequestBody ReviewDTO reviewRequest) {
 	        if (reviewRequest == null) {
@@ -53,8 +47,7 @@ public class ReviewController {
 	    }
 
 	    @PutMapping("/update-review/{id}")
-	    public ResponseEntity<ApiResponse> updateReview(@PathVariable Long id, @RequestBody ReviewDTO reviewRequest) throws Exception {
-	        checkReviewOwner(id);
+	    public ResponseEntity<ApiResponse> updateReview(@PathVariable Long id, @RequestBody ReviewDTO reviewRequest) {
 	        try {
 	            reviewRequest.setId(id); // Asegura que el ID del DTO sea el correcto
 	            ApiResponse response = reviewService.updateReviewData(reviewRequest);
@@ -65,8 +58,7 @@ public class ReviewController {
 	    }
 
 	    @DeleteMapping("/delete-review/{id}")
-	    public ResponseEntity<ApiResponse> deleteReview(@PathVariable Long id) throws Exception {
-	        checkReviewOwner(id);
+	    public ResponseEntity<ApiResponse> deleteReview(@PathVariable Long id) {
 	        try {
 	            reviewService.deleteReview(id);
 	            return ResponseEntity.ok(new ApiResponse("La reseña se eliminó correctamente"));

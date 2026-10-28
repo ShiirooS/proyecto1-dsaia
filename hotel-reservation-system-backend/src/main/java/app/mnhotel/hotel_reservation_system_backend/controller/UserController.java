@@ -18,6 +18,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 import app.mnhotel.hotel_reservation_system_backend.dto.RoomDTO;
 import app.mnhotel.hotel_reservation_system_backend.dto.UserDTO;
+import app.mnhotel.hotel_reservation_system_backend.exception.BusinessException;
 import app.mnhotel.hotel_reservation_system_backend.request.RegisterRequest;
 import app.mnhotel.hotel_reservation_system_backend.response.ApiResponse;
 import app.mnhotel.hotel_reservation_system_backend.service.CurrentUserService;
@@ -72,8 +73,15 @@ public class UserController {
 	public ResponseEntity<ApiResponse> updateUser(@PathVariable Long id, @RequestBody UserDTO userDTO) {
 		    // HU-04: cada usuario solo edita su propio perfil (ADMIN puede editar cualquiera)
 		    currentUserService.checkOwnerOrAdmin(id, USER_NOT_FOUND, "User no encontrado con ID: " + id);
+		    // HU-04: el username (email de acceso) solo lo cambia un ADMIN; el rol nunca se cambia por aquí
+		    if (!currentUserService.isAdmin()) {
+		        userDTO.setUsername(null);
+		    }
+		    userDTO.setRole(null);
 		    try {
 		        return ResponseEntity.ok(userService.updateUser(id,userDTO));
+		    } catch (BusinessException e) {
+		        throw e;
 		    } catch (Exception e) {
 		        e.printStackTrace(); // Para depuración
 		        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)

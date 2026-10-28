@@ -63,16 +63,18 @@ public class SecurityConfig {
                 // Catálogo público
                 .requestMatchers(HttpMethod.GET,
                 		"/api/hotel/get-all", "/api/hotel/get-hotel/*",
-                		"/api/room/get-all", "/api/room/get-room/*", "/api/room/*/availability",
+                		"/api/room/get-all", "/api/room/get-room/*", "/api/room/get-availability/*",
                 		"/api/review/get-all", "/api/review/get-review/*").permitAll()
-                // Gestión de inventario: solo ADMIN
-                .requestMatchers("/api/hotel/**", "/api/room/**", "/api/admin/**").hasAuthority(ADMIN)
-                // Gestión de usuarios: solo ADMIN (cada usuario ve/edita lo suyo con /current, get-user y update-user)
-                .requestMatchers("/api/user/get-all", "/api/user/registration-user", "/api/user/delete-user/*").hasAuthority(ADMIN)
-                // Listados globales y operaciones administrativas de reservas y pagos
-                .requestMatchers("/api/reservation/get-all", "/api/reservation/update-reservation/*",
-                		"/api/reservation/delete-reservation/*").hasAuthority(ADMIN)
-                .requestMatchers("/api/payment/get-all", "/api/payment/cancel-payment/*").hasAuthority(ADMIN);
+                // Cualquier autenticado: su perfil, publicar reseñas, reservar y ver/cancelar lo suyo,
+                // y sus métodos de pago. La regla "solo el dueño" se aplica en los servicios (ajeno -> 404)
+                .requestMatchers(HttpMethod.GET, "/api/user/current", "/api/user/get-user/*",
+                		"/api/reservation/my-reservations", "/api/reservation/my-reservations/*").authenticated()
+                .requestMatchers(HttpMethod.PUT, "/api/user/update-user/*", "/api/reservation/cancel-reservation/*").authenticated()
+                .requestMatchers(HttpMethod.POST, "/api/review/registration-review", "/api/reservation/book").authenticated()
+                .requestMatchers("/api/payment-method/**").authenticated()
+                // Todo lo demás de gestión es solo ADMIN (matriz RBAC, API-CONTRACT §13)
+                .requestMatchers("/api/hotel/**", "/api/room/**", "/api/review/**", "/api/user/**",
+                		"/api/reservation/**", "/api/payment/**", "/api/analytics/**").hasAuthority(ADMIN);
               if (h2ConsoleEnabled) {
                   authRequest.requestMatchers("/h2-console/**").permitAll();
               }

@@ -12,6 +12,7 @@ import app.mnhotel.hotel_reservation_system_backend.dto.GoogleUserDTO;
 import app.mnhotel.hotel_reservation_system_backend.dto.UserDTO;
 import app.mnhotel.hotel_reservation_system_backend.entity.User;
 import app.mnhotel.hotel_reservation_system_backend.enums.RoleType;
+import app.mnhotel.hotel_reservation_system_backend.exception.ConflictException;
 import app.mnhotel.hotel_reservation_system_backend.jwt.JwtService;
 import app.mnhotel.hotel_reservation_system_backend.repository.UserRepository;
 import app.mnhotel.hotel_reservation_system_backend.request.RegisterRequest;
@@ -87,7 +88,11 @@ public class UserServiceImp implements UserService{
 		        // Update user fields
 		        // Actualiza los campos del usuario
 		        if (userDTO.getUsername() != null) {
-		            existingUser.setUsername(userDTO.getUsername()); // Actualiza el email
+		            String username = userDTO.getUsername().trim().toLowerCase();
+		            if (!username.equals(existingUser.getUsername()) && userRepository.existsByUsername(username)) {
+		                throw new ConflictException("USERNAME_ALREADY_EXISTS", "El nombre de usuario ya está en uso");
+		            }
+		            existingUser.setUsername(username); // Actualiza el email
 		        }
 
 		        if (userDTO.getFullName() != null) {
