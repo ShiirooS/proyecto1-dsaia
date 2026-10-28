@@ -44,13 +44,13 @@ public class AuthServiceImp implements AuthService{
 	@Override
 	@Transactional
 	public AuthResponse register(RegisterRequest request) {
-		String username = request.getUsername().trim();
+		String username = request.getUsername().trim().toLowerCase();
 		String email = request.getEmail().trim().toLowerCase();
 		if (userRepository.existsByUsername(username)) {
-			throw new ConflictException("El nombre de usuario ya está registrado");
+			throw new ConflictException("USERNAME_ALREADY_EXISTS", "El nombre de usuario ya está registrado");
 		}
 		if (userRepository.existsByEmail(email)) {
-			throw new ConflictException("El email ya está registrado");
+			throw new ConflictException("EMAIL_ALREADY_EXISTS", "El email ya está registrado");
 		}
 		// El rol siempre es USER: un cliente nunca puede auto-asignarse ADMIN
 		User user = User.builder()
@@ -69,8 +69,8 @@ public class AuthServiceImp implements AuthService{
 	@Override
 	@Transactional(readOnly = true)
 	public AuthResponse login(LoginRequest request) {
-		String login = request.getUsername().trim();
-		User user = userRepository.findByUsernameOrEmail(login, login.toLowerCase())
+		String login = request.getUsername().trim().toLowerCase();
+		User user = userRepository.findByUsernameOrEmail(login, login)
 				.filter(found -> passwordEncoder.matches(request.getPassword(), found.getPassword()))
 				// Mismo mensaje para usuario inexistente y contraseña errónea (no revela qué cuentas existen)
 				.orElseThrow(() -> new BadCredentialsException("Usuario o contraseña incorrectos"));

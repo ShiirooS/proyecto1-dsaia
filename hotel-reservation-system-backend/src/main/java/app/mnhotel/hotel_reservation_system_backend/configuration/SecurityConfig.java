@@ -46,18 +46,19 @@ public class SecurityConfig {
 				.anyRequest().authenticated())
 			.exceptionHandling(ex -> ex
 				.authenticationEntryPoint((request, response, e) ->
-					writeJson(response, HttpStatus.UNAUTHORIZED, "Debes iniciar sesión para continuar"))
+					writeJson(response, HttpStatus.UNAUTHORIZED, "UNAUTHORIZED", "Debe iniciar sesión para acceder a este recurso"))
 				.accessDeniedHandler((request, response, e) ->
-					writeJson(response, HttpStatus.FORBIDDEN, "No tienes permisos para esta operación")))
+					writeJson(response, HttpStatus.FORBIDDEN, "FORBIDDEN", "No tiene permisos para acceder a este recurso")))
 			.addFilterBefore(jwtFilter, UsernamePasswordAuthenticationFilter.class);
 		return http.build();
 	}
 
-	private static void writeJson(HttpServletResponse response, HttpStatus status, String message) throws IOException {
+	private static void writeJson(HttpServletResponse response, HttpStatus status, String code, String message)
+			throws IOException {
 		response.setStatus(status.value());
 		response.setContentType(MediaType.APPLICATION_JSON_VALUE);
 		response.setCharacterEncoding("UTF-8");
-		response.getWriter().write("{\"message\":\"" + message + "\"}");
+		response.getWriter().write("{\"message\":\"" + message + "\",\"code\":\"" + code + "\"}");
 	}
 
 	@Bean

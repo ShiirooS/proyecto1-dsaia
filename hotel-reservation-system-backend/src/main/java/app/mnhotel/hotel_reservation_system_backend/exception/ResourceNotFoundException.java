@@ -1,8 +1,14 @@
 package app.mnhotel.hotel_reservation_system_backend.exception;
 
-public class ResourceNotFoundException extends RuntimeException {
-	
+import org.springframework.http.HttpStatus;
+
+public class ResourceNotFoundException extends BusinessException {
+
 	  public ResourceNotFoundException(String message) {
-	        super(message);
+	        this("NOT_FOUND", message);
+	    }
+
+	  public ResourceNotFoundException(String code, String message) {
+	        super(HttpStatus.NOT_FOUND, code, message);
 	    }
 }

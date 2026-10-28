@@ -83,20 +83,22 @@ class AuthControllerTest {
 	void registroDuplicadoDevuelve409() throws Exception {
 		register("duplicado", "dup@correo.com");
 		mockMvc.perform(post("/api/auth/register").contentType(MediaType.APPLICATION_JSON)
-				.content(registerBody("duplicado", "otro@correo.com", "Clave1234")))
+				.content(registerBody("DUPLICADO", "otro@correo.com", "Clave1234")))
 				.andExpect(status().isConflict())
-				.andExpect(jsonPath("$.message").value("El nombre de usuario ya está registrado"));
+				.andExpect(jsonPath("$.code").value("USERNAME_ALREADY_EXISTS"));
 		mockMvc.perform(post("/api/auth/register").contentType(MediaType.APPLICATION_JSON)
 				.content(registerBody("otro", "dup@correo.com", "Clave1234")))
 				.andExpect(status().isConflict())
-				.andExpect(jsonPath("$.message").value("El email ya está registrado"));
+				.andExpect(jsonPath("$.code").value("EMAIL_ALREADY_EXISTS"));
 	}
 
 	@Test
 	void registroConPasswordDebilDevuelve400() throws Exception {
 		mockMvc.perform(post("/api/auth/register").contentType(MediaType.APPLICATION_JSON)
 				.content(registerBody("debil", "debil@correo.com", "corta")))
-				.andExpect(status().isBadRequest());
+				.andExpect(status().isBadRequest())
+				.andExpect(jsonPath("$.code").value("VALIDATION_ERROR"))
+				.andExpect(jsonPath("$.errors.password").exists());
 		mockMvc.perform(post("/api/auth/register").contentType(MediaType.APPLICATION_JSON)
 				.content(registerBody("debil", "no-es-email", "Clave1234")))
 				.andExpect(status().isBadRequest());
@@ -131,7 +133,8 @@ class AuthControllerTest {
 		String token = register("marta", "marta@correo.com");
 
 		mockMvc.perform(get("/api/auth/me"))
-				.andExpect(status().isUnauthorized());
+				.andExpect(status().isUnauthorized())
+				.andExpect(jsonPath("$.code").value("UNAUTHORIZED"));
 
 		mockMvc.perform(get("/api/auth/me").header(HttpHeaders.AUTHORIZATION, "Bearer token-falso"))
 				.andExpect(status().isUnauthorized());
@@ -149,6 +152,7 @@ class AuthControllerTest {
 
 		mockMvc.perform(post("/api/hotel/registration-hotel").header(HttpHeaders.AUTHORIZATION, "Bearer " + token)
 				.contentType(MediaType.APPLICATION_JSON).content(hotel.toString()))
-				.andExpect(status().isForbidden());
+				.andExpect(status().isForbidden())
+				.andExpect(jsonPath("$.code").value("FORBIDDEN"));
 	}
 }
