@@ -40,6 +40,8 @@ public class User implements UserDetails  {
     @Column(name="image_url")
     private String profileImageUrl;
 
+    // Como texto (USER/ADMIN): el ordinal por defecto generaba TINYINT, inválido en H2/PostgreSQL y frágil al reordenar el enum
+    @Enumerated(EnumType.STRING)
     @Column(name="role")
     private RoleType role; 
     

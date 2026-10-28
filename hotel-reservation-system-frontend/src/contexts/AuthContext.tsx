@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, ReactNode, useEffect } from 'react';
+import { createContext, useContext, useState, ReactNode, useEffect } from 'react';
 import { login as loginService, logout as logoutService, isAuthenticated as checkIsAuthenticated } from '../services/authService';
 
 interface AuthContextType {

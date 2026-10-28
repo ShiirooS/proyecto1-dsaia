@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react'
+import { useEffect, useState } from 'react'
 import { HotelDTO, fetchHotelById } from '../../services/hotelService';
 import CardHotel from '../Cards/CardRoomWithHotel';
 import { RoomDTO, fetchRooms } from '../../services/roomService';

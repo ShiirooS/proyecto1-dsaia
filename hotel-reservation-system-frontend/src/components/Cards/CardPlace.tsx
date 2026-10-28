@@ -1,4 +1,3 @@
-import React from 'react'
 
 // CardSlider.tsx
 interface CardProps {

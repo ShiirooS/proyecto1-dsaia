@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { HotelDTO, fetchHotelById, updateHotel } from '../../../services/hotelService'; // Asegúrate de importar correctamente
 
 interface HotelModalProps {

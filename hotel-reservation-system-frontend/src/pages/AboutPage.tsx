@@ -1,4 +1,3 @@
-import React from 'react'
 import Header from '../components/Layouts/Header'
 import HeaderBanner from '../components/Layouts/HeaderBanner'
 

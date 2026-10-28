@@ -1,4 +1,3 @@
-import React from 'react';
 import { IoAddOutline } from 'react-icons/io5';
 import ButtonGroup from '../../Buttons/ButtonGroup';
 
