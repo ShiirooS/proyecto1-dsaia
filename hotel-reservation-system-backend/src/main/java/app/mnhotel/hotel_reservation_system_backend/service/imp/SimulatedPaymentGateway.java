@@ -35,6 +35,11 @@ public class SimulatedPaymentGateway implements PaymentGateway {
 		return "txn_" + randomId(24);
 	}
 
+	@Override
+	public void refund(String transactionId, int amount) {
+		// Simulado: el reembolso siempre se acepta. Una pasarela real lo enviaría aquí con el transactionId del cobro
+	}
+
 	private String randomId(int length) {
 		StringBuilder id = new StringBuilder(length);
 		for (int i = 0; i < length; i++) {

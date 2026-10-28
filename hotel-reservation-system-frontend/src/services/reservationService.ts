@@ -56,3 +56,15 @@ export async function getMyReservation(id: number | string): Promise<MyReservati
   const response = await api.get(`/api/reservation/my-reservations/${toPathId(id)}`);
   return response.data as MyReservation;
 }
+
+/** HU-05: reservations of the logged-in user, newest check-in first (empty list = 200 []). */
+export async function listMyReservations(): Promise<MyReservation[]> {
+  const response = await api.get('/api/reservation/my-reservations');
+  return response.data as MyReservation[];
+}
+
+/** HU-05: the server re-applies the 48 h policy at this instant; its answer (refund or not) is authoritative. */
+export async function cancelReservation(id: number | string): Promise<MyReservation> {
+  const response = await api.put(`/api/reservation/cancel-reservation/${toPathId(id)}`);
+  return response.data as MyReservation;
+}

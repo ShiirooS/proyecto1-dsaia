@@ -23,4 +23,12 @@ public interface RoomRepository extends JpaRepository<Room,Long> {
 	@Lock(LockModeType.PESSIMISTIC_WRITE)
 	@Query("select r from Room r where r.id = :id and r.availbility = true")
 	Optional<Room> findActiveByIdForUpdate(@Param("id") Long id);
+
+	// HU-03: inventario R del alcance (habitaciones activas; hotelId null = todos los hoteles)
+	@Query("select count(r) from Room r where r.availbility = true and (:hotelId is null or r.hotel.id = :hotelId)")
+	long countActive(@Param("hotelId") Long hotelId);
+
+	// HU-03: precio medio por noche P̄ de las habitaciones activas del alcance (null si no hay ninguna)
+	@Query("select avg(r.pricePerNight) from Room r where r.availbility = true and (:hotelId is null or r.hotel.id = :hotelId)")
+	Double averageActivePricePerNight(@Param("hotelId") Long hotelId);
 }

@@ -17,6 +17,7 @@ import org.springframework.transaction.annotation.Isolation;
 import org.springframework.transaction.annotation.Transactional;
 
 import app.mnhotel.hotel_reservation_system_backend.domain.CancellationPolicy;
+import app.mnhotel.hotel_reservation_system_backend.domain.CancellationPolicy.Cancellation;
 import app.mnhotel.hotel_reservation_system_backend.domain.CardValidator;
 import app.mnhotel.hotel_reservation_system_backend.domain.CardValidator.ValidatedCard;
 import app.mnhotel.hotel_reservation_system_backend.dto.MyReservationDTO;
@@ -151,6 +152,47 @@ public class BookingServiceImp implements BookingService {
 		return toMyReservation(findOwnedReservation(id));
 	}
 
+	@Override
+	@Transactional(readOnly = true)
+	public List<MyReservationDTO> listMyReservations() {
+		User user = currentUserService.getCurrentUser();
+		return reservationRepository.findByUserIdOrderByStartDateDescIdDesc(user.getId()).stream()
+				.map(this::toMyReservation)
+				.toList();
+	}
+
+	@Override
+	@Transactional
+	public MyReservationDTO cancelMyReservation(Long id) {
+		User user = currentUserService.getCurrentUser();
+		Reservation reservation = reservationRepository.findOwnedByIdForUpdate(id, user.getId())
+				.orElseThrow(() -> new ResourceNotFoundException("RESERVATION_NOT_FOUND", "Reserva no encontrada"));
+		if (reservation.getStatus() == ReservationStatus.CANCELLED) {
+			throw new ConflictException("RESERVATION_ALREADY_CANCELLED", "La reserva ya estaba cancelada");
+		}
+
+		// El servidor recalcula la política en este instante: manda sobre lo que mostró el diálogo (RN-05.6)
+		LocalDateTime now = LocalDateTime.now(clock);
+		int total = reservation.getTotalAmount() == null ? 0 : reservation.getTotalAmount();
+		Cancellation policy = CancellationPolicy.evaluate(reservation.getStatus(), reservation.getStartDate(), total, now,
+				LocalTime.parse(checkInTime));
+		if (!policy.cancellable()) {
+			throw new ConflictException("RESERVATION_NOT_CANCELLABLE", "La reserva ya no se puede cancelar: llegó la hora de check-in");
+		}
+
+		Payment payment = latestPayment(reservation);
+		if (policy.refundable() && payment != null && payment.getStatus() == PaymentStatus.COMPLETED) {
+			paymentGateway.refund(payment.getTransactionId(), policy.refundAmountIfCancelledNow());
+			payment.setStatus(PaymentStatus.REFUNDED);
+			payment.setRefundedAmount(policy.refundAmountIfCancelledNow());
+		}
+		// Sin reembolso el pago sigue COMPLETED con refundedAmount 0. Las noches se liberan al instante porque la
+		// disponibilidad solo cuenta reservas CONFIRMED (ADR-005)
+		reservation.setStatus(ReservationStatus.CANCELLED);
+		reservation.setCancelledAt(now.truncatedTo(ChronoUnit.SECONDS));
+		return toMyReservation(reservation);
+	}
+
 	Reservation findOwnedReservation(Long id) {
 		User user = currentUserService.getCurrentUser();
 		return reservationRepository.findById(id)
@@ -185,12 +227,16 @@ public class BookingServiceImp implements BookingService {
 		return new BusinessException(HttpStatus.UNPROCESSABLE_ENTITY, code, message);
 	}
 
+	private static Payment latestPayment(Reservation reservation) {
+		return reservation.getPayments() == null ? null : reservation.getPayments().stream()
+				.max(Comparator.comparing(Payment::getId))
+				.orElse(null);
+	}
+
 	MyReservationDTO toMyReservation(Reservation reservation) {
 		Room room = reservation.getRoom();
 		Hotel hotel = room.getHotel();
-		Payment payment = reservation.getPayments() == null ? null : reservation.getPayments().stream()
-				.max(Comparator.comparing(Payment::getId))
-				.orElse(null);
+		Payment payment = latestPayment(reservation);
 		int total = reservation.getTotalAmount() == null ? 0 : reservation.getTotalAmount();
 		return MyReservationDTO.builder()
 				.id(reservation.getId())

@@ -3,6 +3,8 @@ package app.mnhotel.hotel_reservation_system_backend.configuration;
 import java.time.Clock;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.YearMonth;
+import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Random;
@@ -13,16 +15,21 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
+import app.mnhotel.hotel_reservation_system_backend.domain.OccupancyCalculator;
+import app.mnhotel.hotel_reservation_system_backend.domain.OccupancyCalculator.Stay;
 import app.mnhotel.hotel_reservation_system_backend.entity.Hotel;
+import app.mnhotel.hotel_reservation_system_backend.entity.Payment;
 import app.mnhotel.hotel_reservation_system_backend.entity.PaymentMethod;
 import app.mnhotel.hotel_reservation_system_backend.entity.Reservation;
 import app.mnhotel.hotel_reservation_system_backend.entity.Room;
 import app.mnhotel.hotel_reservation_system_backend.entity.User;
 import app.mnhotel.hotel_reservation_system_backend.enums.CardBrand;
+import app.mnhotel.hotel_reservation_system_backend.enums.PaymentStatus;
 import app.mnhotel.hotel_reservation_system_backend.enums.ReservationStatus;
 import app.mnhotel.hotel_reservation_system_backend.enums.RoleType;
 import app.mnhotel.hotel_reservation_system_backend.repository.HotelRepository;
 import app.mnhotel.hotel_reservation_system_backend.repository.PaymentMethodRepository;
+import app.mnhotel.hotel_reservation_system_backend.repository.PaymentRepository;
 import app.mnhotel.hotel_reservation_system_backend.repository.ReservationRepository;
 import app.mnhotel.hotel_reservation_system_backend.repository.RoomRepository;
 import app.mnhotel.hotel_reservation_system_backend.repository.UserRepository;
@@ -47,10 +54,15 @@ public class DevDataSeeder implements CommandLineRunner {
 	private static final String IMG_DOBLE = "https://img.freepik.com/foto-gratis/suite-dormitorio-moderno-clasico-lujo-hotel_105762-1787.jpg";
 	private static final String IMG_SUITE = "https://img.freepik.com/free-photo/3d-rendering-beautiful-luxury-bedroom-suite-hotel-with-tv_105762-2063.jpg";
 
+	// HU-03: ocupación objetivo del histórico, de enero a diciembre, y tendencia de +0.5 pp por mes
+	static final double[] SEASONAL_OCCUPANCY = { 0.55, 0.50, 0.60, 0.65, 0.45, 0.55, 0.80, 0.85, 0.45, 0.40, 0.55, 0.80 };
+	static final double MONTHLY_TREND = 0.005;
+
 	private final UserRepository userRepository;
 	private final HotelRepository hotelRepository;
 	private final RoomRepository roomRepository;
 	private final ReservationRepository reservationRepository;
+	private final PaymentRepository paymentRepository;
 	private final PaymentMethodRepository paymentMethodRepository;
 	private final PasswordEncoder passwordEncoder;
 	private final Clock clock;
@@ -69,7 +81,9 @@ public class DevDataSeeder implements CommandLineRunner {
 		}
 
 		List<Room> rooms = seedCatalog();
-		seedUpcomingReservations(rooms, syntheticGuests);
+		List<Reservation> seeded = new ArrayList<>(seedDemoReservations(rooms, demo));
+		seeded.addAll(seedHistory(rooms, syntheticGuests, seeded));
+		seedUpcomingReservations(rooms, syntheticGuests, seeded);
 		seedSavedCard(demo);
 		log.info("Datos semilla cargados (usuarios {} y {}, {} habitaciones)", ADMIN_USERNAME, GUEST_USERNAME, rooms.size());
 	}
@@ -113,7 +127,7 @@ public class DevDataSeeder implements CommandLineRunner {
 	/**
 	 * HU-02: ocupación salteada en los próximos 60 días para que el calendario muestre días ocupados.
 	 */
-	private void seedUpcomingReservations(List<Room> rooms, List<User> guests) {
+	private void seedUpcomingReservations(List<Room> rooms, List<User> guests, List<Reservation> alreadySeeded) {
 		Random random = new Random(42);
 		LocalDate today = LocalDate.now(clock);
 		List<Reservation> reservations = new ArrayList<>();
@@ -121,18 +135,97 @@ public class DevDataSeeder implements CommandLineRunner {
 			LocalDate cursor = today.plusDays(1 + random.nextInt(4));
 			while (cursor.isBefore(today.plusDays(60))) {
 				int nights = 1 + random.nextInt(4);
-				reservations.add(Reservation.builder()
-						.room(room)
-						.user(guests.get(random.nextInt(guests.size())))
-						.startDate(cursor)
-						.endDate(cursor.plusDays(nights))
-						.status(ReservationStatus.CONFIRMED)
-						.createdAt(LocalDateTime.now(clock))
-						.build());
+				// No pisar las reservas del usuario demo (dos CONFIRMED no pueden compartir noches, ADR-005)
+				if (isFree(alreadySeeded, room, cursor, cursor.plusDays(nights))) {
+					reservations.add(Reservation.builder()
+							.room(room)
+							.user(guests.get(random.nextInt(guests.size())))
+							.startDate(cursor)
+							.endDate(cursor.plusDays(nights))
+							.guests(1)
+							.totalAmount(nights * room.getPricePerNight())
+							.status(ReservationStatus.CONFIRMED)
+							.createdAt(LocalDateTime.now(clock))
+							.build());
+				}
 				cursor = cursor.plusDays(nights + 2L + random.nextInt(6));
 			}
 		}
 		reservationRepository.saveAll(reservations);
+	}
+
+	/**
+	 * HU-03: 24 meses completos de histórico para la previsión de demanda. Ocupación objetivo por mes calendario
+	 * (picos en julio, agosto y diciembre) más 0.5 pp de tendencia mensual, con estancias de 2 a 5 noches
+	 * separadas por huecos aleatorios cuya media lleva cada mes a su objetivo.
+	 */
+	private List<Reservation> seedHistory(List<Room> rooms, List<User> guests, List<Reservation> alreadySeeded) {
+		Random random = new Random(42);
+		YearMonth firstMonth = YearMonth.now(clock).minusMonths(24);
+		LocalDate historyEnd = YearMonth.now(clock).atDay(1);
+		List<Reservation> history = new ArrayList<>();
+		for (Room room : rooms) {
+			LocalDate cursor = firstMonth.atDay(1).plusDays(random.nextInt(3));
+			while (cursor.isBefore(historyEnd)) {
+				YearMonth month = YearMonth.from(cursor);
+				long t = ChronoUnit.MONTHS.between(firstMonth, month) + 1;
+				double target = SEASONAL_OCCUPANCY[month.getMonthValue() - 1] + MONTHLY_TREND * (t - 12);
+				int nights = 2 + random.nextInt(4);
+				// Hueco medio tal que noches / (noches + hueco) ≈ ocupación objetivo
+				long gap = Math.round(nights * (1 - target) / target * 2 * random.nextDouble());
+				LocalDate checkOut = cursor.plusDays(nights);
+				if (isFree(alreadySeeded, room, cursor, checkOut)) {
+					history.add(Reservation.builder()
+							.room(room)
+							.user(guests.get(random.nextInt(guests.size())))
+							.startDate(cursor)
+							.endDate(checkOut)
+							.guests(1)
+							.totalAmount(nights * room.getPricePerNight())
+							.status(ReservationStatus.CONFIRMED)
+							.createdAt(cursor.minusDays(15).atTime(10, 0))
+							.build());
+				}
+				cursor = checkOut.plusDays(gap);
+			}
+		}
+		return reservationRepository.saveAll(history);
+	}
+
+	private static boolean isFree(List<Reservation> seeded, Room room, LocalDate checkIn, LocalDate checkOut) {
+		Stay candidate = new Stay(checkIn, checkOut);
+		return seeded.stream()
+				.filter(r -> r.getRoom() == room && r.getStatus() == ReservationStatus.CONFIRMED)
+				.noneMatch(r -> OccupancyCalculator.overlaps(candidate, new Stay(r.getStartDate(), r.getEndDate())));
+	}
+
+	/**
+	 * HU-05: historial del usuario demo para probar "Mis reservas": una próxima reembolsable, una que empieza mañana
+	 * (cancelable sin reembolso), una pasada y una cancelada con reembolso. Todas pagadas con su VISA ••••4242.
+	 */
+	private List<Reservation> seedDemoReservations(List<Room> rooms, User demo) {
+		LocalDate today = LocalDate.now(clock);
+		List<Reservation> seeded = new ArrayList<>();
+		seeded.add(demoReservation(demo, rooms.get(1), today.plusDays(20), 3, ReservationStatus.CONFIRMED, today.minusDays(5)));
+		seeded.add(demoReservation(demo, rooms.get(0), today.plusDays(1), 2, ReservationStatus.CONFIRMED, today.minusDays(10)));
+		seeded.add(demoReservation(demo, rooms.get(2), today.minusDays(30), 3, ReservationStatus.CONFIRMED, today.minusDays(60)));
+		seeded.add(demoReservation(demo, rooms.get(5), today.plusDays(10), 2, ReservationStatus.CANCELLED, today.minusDays(20)));
+		return seeded;
+	}
+
+	private Reservation demoReservation(User demo, Room room, LocalDate checkIn, int nights, ReservationStatus status,
+			LocalDate bookedOn) {
+		int total = nights * room.getPricePerNight();
+		LocalDateTime bookedAt = bookedOn.atTime(11, 30);
+		boolean cancelled = status == ReservationStatus.CANCELLED;
+		Reservation reservation = reservationRepository.save(Reservation.builder()
+				.room(room).user(demo).startDate(checkIn).endDate(checkIn.plusDays(nights)).guests(1).totalAmount(total)
+				.status(status).createdAt(bookedAt).cancelledAt(cancelled ? bookedAt.plusDays(3) : null).build());
+		paymentRepository.save(Payment.builder().reservation(reservation).amount(total)
+				.status(cancelled ? PaymentStatus.REFUNDED : PaymentStatus.COMPLETED).refundedAmount(cancelled ? total : 0)
+				.cardBrand(CardBrand.VISA.name()).cardLast4("4242").transactionId("txn_demo" + reservation.getId())
+				.paymentDate(bookedAt).build());
+		return reservation;
 	}
 
 	/**

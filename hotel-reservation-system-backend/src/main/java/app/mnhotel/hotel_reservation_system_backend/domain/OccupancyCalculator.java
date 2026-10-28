@@ -1,8 +1,11 @@
 package app.mnhotel.hotel_reservation_system_backend.domain;
 
 import java.time.LocalDate;
+import java.time.YearMonth;
 import java.util.Collection;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.TreeSet;
 
 /**
@@ -29,6 +32,28 @@ public final class OccupancyCalculator {
 			}
 		}
 		return List.copyOf(nights);
+	}
+
+	/**
+	 * HU-03 (ADR-004 §3 paso 3): noches ocupadas en cada mes de [fromMonth, toMonth], ambos inclusive y en orden.
+	 * Una estancia que cruza meses reparte sus noches; una estancia no válida (checkOut <= checkIn) no suma nada.
+	 * Recibe solo estancias CONFIRMED: el filtro por estado lo hace la consulta.
+	 */
+	public static Map<YearMonth, Integer> nightsPerMonth(Collection<Stay> stays, YearMonth fromMonth, YearMonth toMonth) {
+		Map<YearMonth, Integer> nights = new LinkedHashMap<>();
+		for (YearMonth month = fromMonth; !month.isAfter(toMonth); month = month.plusMonths(1)) {
+			nights.put(month, 0);
+		}
+		LocalDate windowStart = fromMonth.atDay(1);
+		LocalDate windowEnd = toMonth.plusMonths(1).atDay(1);
+		for (Stay stay : stays) {
+			LocalDate first = stay.checkIn().isBefore(windowStart) ? windowStart : stay.checkIn();
+			LocalDate end = stay.checkOut().isAfter(windowEnd) ? windowEnd : stay.checkOut();
+			for (LocalDate night = first; night.isBefore(end); night = night.plusDays(1)) {
+				nights.merge(YearMonth.from(night), 1, Integer::sum);
+			}
+		}
+		return nights;
 	}
 
 	/**
