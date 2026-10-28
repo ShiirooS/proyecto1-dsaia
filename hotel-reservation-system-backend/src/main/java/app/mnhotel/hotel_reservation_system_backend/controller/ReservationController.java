@@ -2,6 +2,7 @@ package app.mnhotel.hotel_reservation_system_backend.controller;
 
 import app.mnhotel.hotel_reservation_system_backend.dto.ReservationDTO;
 import app.mnhotel.hotel_reservation_system_backend.response.ApiResponse;
+import app.mnhotel.hotel_reservation_system_backend.service.CurrentUserService;
 import app.mnhotel.hotel_reservation_system_backend.service.ReservationService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
@@ -17,11 +18,17 @@ public class ReservationController {
     @Autowired
     private ReservationService reservationService;
 
+    @Autowired
+    private CurrentUserService currentUserService;
+
     @PostMapping("/registration-reservation")
     public ResponseEntity<ApiResponse> createReservation(@RequestBody ReservationDTO reservationRequest){
-        System.out.println("paso x aqui-controller" +reservationRequest.getUserId());
         if(reservationRequest==null){
             return ResponseEntity.badRequest().body(new ApiResponse("Error: la solicitud están vacíos"));
+        }
+        // HU-04: un USER solo reserva a su nombre; el userId del body se ignora (solo ADMIN puede indicar otro)
+        if (!currentUserService.isAdmin()) {
+            reservationRequest.setUserId(currentUserService.getCurrentUser().getId());
         }
         try{
             reservationService.createReservation(reservationRequest);
@@ -69,8 +76,13 @@ public class ReservationController {
 
     @GetMapping("/get-reservation/{id}")
     public ResponseEntity<?> findReservationById(@PathVariable Long id) throws Exception{
+        Optional<ReservationDTO> reservation = reservationService.getReservationById(id);
+        // HU-04: una reserva ajena responde 404, igual que una inexistente
+        if (reservation.isPresent()) {
+            currentUserService.checkOwnerOrAdmin(reservation.get().getUserId(), "RESERVATION_NOT_FOUND",
+                    "Reservacion no encontrado con ID: " + id);
+        }
         try{
-            Optional<ReservationDTO> reservation = reservationService.getReservationById(id);
             if (reservation.isPresent()){
                 return ResponseEntity.ok(reservation);
             }else {

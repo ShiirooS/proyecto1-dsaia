@@ -20,6 +20,7 @@ import app.mnhotel.hotel_reservation_system_backend.dto.RoomDTO;
 import app.mnhotel.hotel_reservation_system_backend.dto.UserDTO;
 import app.mnhotel.hotel_reservation_system_backend.request.RegisterRequest;
 import app.mnhotel.hotel_reservation_system_backend.response.ApiResponse;
+import app.mnhotel.hotel_reservation_system_backend.service.CurrentUserService;
 import app.mnhotel.hotel_reservation_system_backend.service.RoomService;
 import app.mnhotel.hotel_reservation_system_backend.service.UserService;
 import app.mnhotel.hotel_reservation_system_backend.entity.User;
@@ -32,6 +33,11 @@ import lombok.RequiredArgsConstructor;
 public class UserController {
 	@Autowired
     private UserService userService;
+
+	@Autowired
+	private CurrentUserService currentUserService;
+
+	private static final String USER_NOT_FOUND = "USER_NOT_FOUND";
 	
 	// API para crear un hotel.
 	@PostMapping("/registration-user")
@@ -64,6 +70,8 @@ public class UserController {
 	// API para editar un hotel by ID.
 	@PutMapping("/update-user/{id}")
 	public ResponseEntity<ApiResponse> updateUser(@PathVariable Long id, @RequestBody UserDTO userDTO) {
+		    // HU-04: cada usuario solo edita su propio perfil (ADMIN puede editar cualquiera)
+		    currentUserService.checkOwnerOrAdmin(id, USER_NOT_FOUND, "User no encontrado con ID: " + id);
 		    try {
 		        return ResponseEntity.ok(userService.updateUser(id,userDTO));
 		    } catch (Exception e) {
@@ -92,7 +100,8 @@ public class UserController {
 	// API para obtener un producto by ID.
     @GetMapping("/get-user/{id}")
     public ResponseEntity<?> findUserById(@PathVariable Long id) throws Exception {
-    	
+    	// HU-04: un USER solo puede consultar su propio usuario
+    	currentUserService.checkOwnerOrAdmin(id, USER_NOT_FOUND, "User no encontrado con ID: " + id);
         try {
         	 Optional<UserDTO> user = userService.getUser(id);
              // Verifica si el Optional contiene un valor

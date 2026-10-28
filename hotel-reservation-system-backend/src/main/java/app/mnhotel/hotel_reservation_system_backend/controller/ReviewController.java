@@ -16,6 +16,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 import app.mnhotel.hotel_reservation_system_backend.dto.ReviewDTO;
 import app.mnhotel.hotel_reservation_system_backend.response.ApiResponse;
+import app.mnhotel.hotel_reservation_system_backend.service.CurrentUserService;
 import app.mnhotel.hotel_reservation_system_backend.service.ReviewService;
 
 @RestController
@@ -24,10 +25,23 @@ public class ReviewController {
 	 	@Autowired
 	    private ReviewService reviewService;
 
+	 	@Autowired
+	 	private CurrentUserService currentUserService;
+
+	 	// HU-04: solo el autor de la reseña o un ADMIN puede modificarla o eliminarla
+	 	private void checkReviewOwner(Long id) throws Exception {
+	 		Long ownerId = reviewService.getReview(id).map(ReviewDTO::getUserId).orElse(null);
+	 		currentUserService.checkOwnerOrAdmin(ownerId, "REVIEW_NOT_FOUND", "Reseña no encontrada con ID: " + id);
+	 	}
+
 	    @PostMapping("/registration-review")
 	    public ResponseEntity<ApiResponse> createReview(@RequestBody ReviewDTO reviewRequest) {
 	        if (reviewRequest == null) {
 	            return ResponseEntity.badRequest().body(new ApiResponse("Error: la solicitud está vacía"));
+	        }
+	        // HU-04: la reseña siempre queda a nombre de quien la publica (salvo ADMIN)
+	        if (!currentUserService.isAdmin()) {
+	            reviewRequest.setUserId(currentUserService.getCurrentUser().getId());
 	        }
 	        try {
 	            reviewService.createReview(reviewRequest);
@@ -39,7 +53,8 @@ public class ReviewController {
 	    }
 
 	    @PutMapping("/update-review/{id}")
-	    public ResponseEntity<ApiResponse> updateReview(@PathVariable Long id, @RequestBody ReviewDTO reviewRequest) {
+	    public ResponseEntity<ApiResponse> updateReview(@PathVariable Long id, @RequestBody ReviewDTO reviewRequest) throws Exception {
+	        checkReviewOwner(id);
 	        try {
 	            reviewRequest.setId(id); // Asegura que el ID del DTO sea el correcto
 	            ApiResponse response = reviewService.updateReviewData(reviewRequest);
@@ -50,7 +65,8 @@ public class ReviewController {
 	    }
 
 	    @DeleteMapping("/delete-review/{id}")
-	    public ResponseEntity<ApiResponse> deleteReview(@PathVariable Long id) {
+	    public ResponseEntity<ApiResponse> deleteReview(@PathVariable Long id) throws Exception {
+	        checkReviewOwner(id);
 	        try {
 	            reviewService.deleteReview(id);
 	            return ResponseEntity.ok(new ApiResponse("La reseña se eliminó correctamente"));
