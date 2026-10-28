@@ -10,6 +10,7 @@ import LoginAdmin from './pages/AdminLoginPage';
 import AuthProvider from './contexts/AuthContext';
 import { ProtectedRoute } from './routes/ProtectedRoute';
 import Bookings from './pages/Bookings';
+import PaymentMethodsPage from './pages/PaymentMethodsPage';
 
 function App() {
 
@@ -26,6 +27,9 @@ function App() {
           <Route path="/roomDetail/:id" element={<RoomDetails />} />
           <Route element={<ProtectedRoute redirectPath="/?login=1&redirect=%2Fbookings" />}>
             <Route path="/bookings" element={<Bookings />} />
+          </Route>
+          <Route element={<ProtectedRoute redirectPath="/?login=1&redirect=%2Fpayment-methods" />}>
+            <Route path="/payment-methods" element={<PaymentMethodsPage />} />
           </Route>
           <Route path="/about" element={<About />} />
         </Routes>

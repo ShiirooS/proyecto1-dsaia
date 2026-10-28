@@ -52,6 +52,17 @@ public class Reservation {
 	@Column(name="status")
 	private ReservationStatus status;
 	
+	// HU-01: huéspedes y total calculado en el servidor (noches x precio por noche)
+	@Column(name="guests")
+	private Integer guests;
+	
+	@Column(name="total_amount")
+	private Integer totalAmount;
+	
+	// HU-05: momento de la cancelación (null si sigue confirmada)
+	@Column(name="cancelled_at")
+	private LocalDateTime cancelledAt;
+	
 	@Column(name="created_at")
 	private LocalDateTime createdAt;
 	

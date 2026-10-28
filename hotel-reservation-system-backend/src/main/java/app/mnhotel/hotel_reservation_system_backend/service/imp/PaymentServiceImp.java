@@ -39,6 +39,10 @@ public class PaymentServiceImp implements PaymentService {
 	            .paymentDate(payment.getPaymentDate())
 	            .status(payment.getStatus())
 	            .idReservation(payment.getReservation() != null ? payment.getReservation().getId() : null)
+	            .cardBrand(payment.getCardBrand())
+	            .cardLast4(payment.getCardLast4())
+	            .transactionId(payment.getTransactionId())
+	            .refundedAmount(payment.getRefundedAmount())
 	            .build();
 	}
 

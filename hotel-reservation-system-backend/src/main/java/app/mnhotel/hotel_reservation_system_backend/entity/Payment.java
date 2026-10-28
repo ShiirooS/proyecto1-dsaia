@@ -42,6 +42,22 @@ public class Payment {
 	@Enumerated(EnumType.STRING)  // O EnumType.ORDINAL si prefieres almacenar el índice
 	private PaymentStatus status;
 
+	// HU-01: copia de marca y últimos 4 (no referencia a PaymentMethod: borrar una tarjeta no rompe el historial)
+	@Column(name = "card_brand")
+	private String cardBrand;
+
+	@Column(name = "card_last4")
+	private String cardLast4;
+
+	// Identificador de la transacción en la pasarela simulada (txn_...)
+	@Column(name = "transaction_id")
+	private String transactionId;
+
+	// HU-05: importe reembolsado al cancelar con antelación
+	@Column(name = "refunded_amount")
+	@Builder.Default
+	private Integer refundedAmount = 0;
+
 	@ManyToOne(fetch = FetchType.EAGER)
     @JoinColumn(name = "reservation_id")
  	@JsonBackReference

@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
-import { useParams } from 'react-router-dom';
+import { useParams, useSearchParams } from 'react-router-dom';
+import { useAuth } from '../contexts/AuthContext';
 import Header from '../components/Layouts/Header'
 import HeaderBanner from '../components/Layouts/HeaderBanner'
 import { getRoomById, RoomDTO } from '../services/roomService';
@@ -7,19 +8,67 @@ import { fetchHotelById, HotelDTO } from '../services/hotelService';
 import { FaBath, FaMapMarkerAlt, FaSnowflake, FaStar, FaTv, FaWifi } from 'react-icons/fa';
 import ConfirmBookingModal from '../components/Modals/ConfirmBookingModal';
 import AvailabilityCalendar, { type DateRange } from '../components/calendar/AvailabilityCalendar';
-import { nightsBetween } from '../components/calendar/calendarUtils';
+
+const ISO_DATE = /^\d{4}-\d{2}-\d{2}$/;
+
+/** The selection travels in the URL (`?checkIn&checkOut&guests`) so it survives the login round-trip. */
+function selectionFromUrl(params: URLSearchParams): { range: DateRange; guests: number } {
+  const checkIn = params.get('checkIn');
+  const checkOut = params.get('checkOut');
+  const guests = Number(params.get('guests'));
+  return {
+    range: checkIn && checkOut && ISO_DATE.test(checkIn) && ISO_DATE.test(checkOut) && checkIn < checkOut ? { checkIn, checkOut } : {},
+    guests: Number.isInteger(guests) && guests >= 1 ? guests : 1,
+  };
+}
 
 export default function RoomDetails() {
-  const { id } = useParams<{ id: string }>(); // Obtén el id de los parámetros de la URL
+  const { id } = useParams<{ id: string }>();
+  return <RoomDetailsContent key={id} id={id} />;
+}
+
+function RoomDetailsContent({ id }: { id: string | undefined }) {
+  const { isAuthenticated } = useAuth();
+  const [searchParams, setSearchParams] = useSearchParams();
+  const [initial] = useState(() => selectionFromUrl(searchParams));
   const [room, setRoom] = useState<RoomDTO | null>(null);
   const [hotel, setHotel] = useState<HotelDTO | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [range, setRange] = useState<DateRange>({});
-  const [guests, setGuests] = useState(1);
+  const [range, setRange] = useState<DateRange>(initial.range);
+  const [guests, setGuests] = useState(initial.guests);
+  const [calendarVersion, setCalendarVersion] = useState(0);
+  const [notice, setNotice] = useState<string | null>(null);
+  const [resumeBookingAfterLogin, setResumeBookingAfterLogin] = useState(false);
 
-  const openModal = () => setIsModalOpen(true);
   const closeModal = () => setIsModalOpen(false);
+
+  useEffect(() => {
+    if (resumeBookingAfterLogin && isAuthenticated) {
+      setResumeBookingAfterLogin(false);
+      setIsModalOpen(true);
+    }
+  }, [resumeBookingAfterLogin, isAuthenticated]);
+
+  const handleBookNow = () => {
+    if (isAuthenticated) {
+      setNotice(null);
+      setIsModalOpen(true);
+      return;
+    }
+    if (!range.checkIn || !range.checkOut) return;
+    const selection = new URLSearchParams({ checkIn: range.checkIn, checkOut: range.checkOut, guests: String(guests) });
+    const redirect = `/roomDetail/${id}?${selection}`;
+    setResumeBookingAfterLogin(true);
+    setSearchParams(new URLSearchParams({ ...Object.fromEntries(selection), login: '1', redirect }));
+  };
+
+  const handleRoomUnavailable = () => {
+    setIsModalOpen(false);
+    setRange({});
+    setCalendarVersion((version) => version + 1);
+    setNotice('Esas fechas acaban de reservarse');
+  };
   
   useEffect(() => {
     if (!id) return;
@@ -52,19 +101,16 @@ export default function RoomDetails() {
       setRoom(null);
       setHotel(null);
       setError(null);
-      setRange({});
-      setGuests(1);
     };
   }, [id]);
 
   const booking =
     room && range.checkIn && range.checkOut
       ? {
-          roomId: room.id,
+          room,
           checkIn: range.checkIn,
           checkOut: range.checkOut,
           guests,
-          total: nightsBetween(range.checkIn, range.checkOut) * room.pricePerNight,
         }
       : null;
 
@@ -147,7 +193,11 @@ export default function RoomDetails() {
                     </div>
 
                     <div className="mt-8 space-y-4">
+                      {notice && (
+                        <p role="alert" className="rounded-md bg-red-50 p-3 text-sm text-red-700">{notice}</p>
+                      )}
                       <AvailabilityCalendar
+                        key={calendarVersion}
                         roomId={room.id}
                         pricePerNight={room.pricePerNight}
                         value={range}
@@ -169,13 +219,13 @@ export default function RoomDetails() {
                       <button
                         type="button"
                         disabled={!booking}
-                        onClick={openModal}
+                        onClick={handleBookNow}
                         className="w-full rounded-lg bg-orange-600 px-5 py-2.5 text-center text-sm font-medium text-white transition hover:bg-orange-700 focus:outline-none focus:ring focus:ring-orange-400 disabled:cursor-not-allowed disabled:bg-gray-300"
                       >
                         Book now
                       </button>
                       {isModalOpen && booking && (
-                        <ConfirmBookingModal isOpen={isModalOpen} closeModal={closeModal} booking={booking} />
+                        <ConfirmBookingModal isOpen={isModalOpen} closeModal={closeModal} booking={booking} onRoomUnavailable={handleRoomUnavailable} />
                       )}
                     </div>
                   </div>
