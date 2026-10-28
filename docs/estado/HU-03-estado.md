@@ -2,9 +2,9 @@
 
 | Campo | Valor |
 |-------|-------|
-| Estado | **Hecha · en PR** |
+| Estado | **Hecha · mergeada** |
 | Issue | #4 |
-| Pull request | (se completa al abrir el PR) |
+| Pull request | #16 (mergeado a `develop`) |
 | Rama | `feature/HU-03-prevision-demanda` (sale de `feature/HU-05-mis-reservas-cancelacion`: las dos tocan `DevDataSeeder`) |
 | Especificación | [../user-stories/HU-03.md](../user-stories/HU-03.md) |
 
@@ -28,4 +28,4 @@
 - QA manual con `admin` en `dev`: picos en jul–ago y dic, pendiente recuperada ≈ +0.5 pp/mes, horizonte 12 + hotel → `horizon=12&hotelId=2` y 12 filas; umbrales comprobados a mano (85.8 % → +15 %, $145 × 1.15 = $167, 5 habitaciones).
 
 ## Pendiente
-- Nada de la HU. Merge del PR (después del de HU-05) y cierre manual del issue #4.
+- Nada. Issue #4 cerrado.

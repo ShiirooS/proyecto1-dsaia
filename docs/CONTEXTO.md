@@ -19,9 +19,9 @@ Issues por HU (#1 a #6, etiqueta `historia-usuario`), rama `feature/HU-XX-...`, 
 | HU-00 base técnica | Mergeada (PR #8) | [estado](estado/HU-00-estado.md) |
 | HU-01 reserva con datos guardados | Mergeada (PR #13) | [estado](estado/HU-01-estado.md) |
 | HU-02 calendario | Mergeada (PR #11, #12) | [estado](estado/HU-02-estado.md) |
-| HU-03 previsión de demanda | Hecha, en PR | [estado](estado/HU-03-estado.md) |
+| HU-03 previsión de demanda | Mergeada (PR #16) | [estado](estado/HU-03-estado.md) |
 | HU-04 roles | Mergeada (PR #9, #10) | [estado](estado/HU-04-estado.md) |
-| HU-05 mis reservas | Hecha, en PR | [estado](estado/HU-05-estado.md) |
+| HU-05 mis reservas | Mergeada (PR #15) | [estado](estado/HU-05-estado.md) |
 
 ## Incidentes y correcciones
 - Revisión de HU-04: 3 críticos (mass assignment de `id`, pagos accesibles a USER, toma de cuenta por renombrado) corregidos con tests.

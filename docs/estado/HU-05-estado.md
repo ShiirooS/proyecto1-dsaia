@@ -2,9 +2,9 @@
 
 | Campo | Valor |
 |-------|-------|
-| Estado | **Hecha · en PR** |
+| Estado | **Hecha · mergeada** |
 | Issue | #6 |
-| Pull request | (se completa al abrir el PR) |
+| Pull request | #15 (mergeado a `develop`) |
 | Rama | `feature/HU-05-mis-reservas-cancelacion` |
 | Especificación | [../user-stories/HU-05.md](../user-stories/HU-05.md) |
 
@@ -26,4 +26,4 @@
 - QA manual con `demo` en el perfil `dev`: cancelar la reembolsable ($360) y la de mañana (sin reembolso) por teclado; `GET /api/room/get-availability` deja de listar esas noches.
 
 ## Pendiente
-- Nada de la HU. Merge del PR y cierre manual del issue #6.
+- Nada. Issue #6 cerrado.
