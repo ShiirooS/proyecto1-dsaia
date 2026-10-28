@@ -14,10 +14,9 @@ Deuda técnica menor (ninguna bloquea las HU):
 ## Entorno local
 - El backend necesita JDK 17 (como CI): con JDK 27 Lombok 1.18.34 no genera getters y la compilación falla.
 
-## Evidencia (se deja para el final)
-- Consolidar `ai-log/raw.md` en el AI Development Log (actividad, herramienta, qué se pidió, resultado, decisión humana).
-- Ejemplos de respuestas incorrectas de la IA, cambios rechazados y decisiones humanas.
-- Material para la presentación.
+## Evidencia
+- Hecho: [AI-DEVELOPMENT-LOG.md](AI-DEVELOPMENT-LOG.md) consolida la bitácora con el formato del enunciado, más las respuestas incorrectas de la IA, los cambios rechazados y las decisiones humanas.
+- Hecho: presentación de 12 diapositivas (Slides de Claude). Falta exportarla a PPTX o PDF para la entrega.
 
 ## Cierre
 - Los merges a `develop` no cierran issues solos: cerrarlos a mano.

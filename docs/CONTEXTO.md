@@ -29,4 +29,4 @@ Issues por HU (#1 a #6, etiqueta `historia-usuario`), rama `feature/HU-XX-...`, 
 - SonarCloud S7044/S8476 en HU-04: se resolvió con `toPathId`.
 - Test inestable de HU-02: `cleanup()` antes de resetear mocks (#12).
 
-Relacionados: [ARCHITECTURE](architecture/ARCHITECTURE.md), [API-CONTRACT](architecture/API-CONTRACT.md), [historias](user-stories/README.md), [revisiones](reviews/).
+Relacionados: [AI Development Log](AI-DEVELOPMENT-LOG.md), [ARCHITECTURE](architecture/ARCHITECTURE.md), [API-CONTRACT](architecture/API-CONTRACT.md), [historias](user-stories/README.md), [revisiones](reviews/).
