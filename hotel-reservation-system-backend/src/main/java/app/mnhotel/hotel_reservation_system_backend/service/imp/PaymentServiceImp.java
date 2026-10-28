@@ -1,5 +1,6 @@
 package app.mnhotel.hotel_reservation_system_backend.service.imp;
 
+import app.mnhotel.hotel_reservation_system_backend.exception.ResourceNotFoundException;
 import java.util.List;
 import java.util.stream.Collectors;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -121,7 +122,7 @@ public class PaymentServiceImp implements PaymentService {
 		Long id = Long.valueOf(paymentId);
 	    // Obtener el pago por ID
 	    Payment payment = paymentRepository.findById(id)
-	            .orElseThrow(() -> new Exception("Payment no encontrado"));
+	            .orElseThrow(() -> new ResourceNotFoundException("PAYMENT_NOT_FOUND", "Payment no encontrado con ID: " + paymentId));
 
 	    // Convertir la entidad a DTO
 	    return mapToDTO(payment);

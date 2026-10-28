@@ -33,6 +33,10 @@ public class HotelController {
 	// API para crear un hotel.
 	@PostMapping("/registration-hotel")
 	public ResponseEntity<ApiResponse> createHotel(@RequestBody HotelDTO hotelRequest) {
+		// HU-04: al crear, el id nunca se toma del body (con un id ajeno save() sobrescribía ese registro)
+		if (hotelRequest != null) {
+			hotelRequest.setId(null);
+		}
 		if (hotelRequest == null) {
 	    	 return ResponseEntity.badRequest().body(new ApiResponse("Error: la solicitud están vacíos"));
 	    } else {

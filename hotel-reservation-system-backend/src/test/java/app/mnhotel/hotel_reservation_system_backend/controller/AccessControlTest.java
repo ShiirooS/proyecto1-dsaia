@@ -30,11 +30,13 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 
 import app.mnhotel.hotel_reservation_system_backend.entity.Hotel;
 import app.mnhotel.hotel_reservation_system_backend.entity.Reservation;
+import app.mnhotel.hotel_reservation_system_backend.entity.Review;
 import app.mnhotel.hotel_reservation_system_backend.entity.Room;
 import app.mnhotel.hotel_reservation_system_backend.entity.User;
 import app.mnhotel.hotel_reservation_system_backend.enums.RoleType;
 import app.mnhotel.hotel_reservation_system_backend.repository.HotelRepository;
 import app.mnhotel.hotel_reservation_system_backend.repository.ReservationRepository;
+import app.mnhotel.hotel_reservation_system_backend.repository.ReviewRepository;
 import app.mnhotel.hotel_reservation_system_backend.repository.RoomRepository;
 import app.mnhotel.hotel_reservation_system_backend.repository.UserRepository;
 import io.jsonwebtoken.Jwts;
@@ -66,6 +68,8 @@ class AccessControlTest {
 	private ReservationRepository reservationRepository;
 	@Autowired
 	private PasswordEncoder passwordEncoder;
+	@Autowired
+	private ReviewRepository reviewRepository;
 
 	@Value("${app.jwt.secret}")
 	private String jwtSecret;
@@ -87,6 +91,8 @@ class AccessControlTest {
 
 	@AfterEach
 	void tearDown() {
+		reviewRepository.deleteAll(reviewRepository.findAll().stream()
+				.filter(r -> r.getHotel() != null && r.getHotel().getId().equals(room.getHotel().getId())).toList());
 		reservationRepository.deleteAll(reservationRepository.findAll().stream()
 				.filter(r -> r.getRoom() != null && r.getRoom().getId().equals(room.getId())).toList());
 		roomRepository.delete(room);
@@ -266,10 +272,52 @@ class AccessControlTest {
 	void unClaimDeRolEnElTokenNoOtorgaPermisos() throws Exception {
 		var key = Keys.hmacShaKeyFor(Decoders.BASE64.decode(jwtSecret));
 		// Aunque el token diga role=ADMIN, las autoridades salen de la base de datos (Ana es USER)
-		String token = Jwts.builder().setClaims(Map.of("role", "ADMIN")).setSubject(ana.getUsername())
+		String token = Jwts.builder().setClaims(Map.of("role", "ADMIN", "uid", ana.getId())).setSubject(ana.getUsername())
 				.setExpiration(new Date(System.currentTimeMillis() + 3_600_000)).signWith(key, SignatureAlgorithm.HS256)
 				.compact();
 
 		mockMvc.perform(as(token, get("/api/user/get-all"))).andExpect(status().isForbidden());
+	}
+
+	@Test
+	void elIdDelBodySeIgnoraAlCrearYNoSobrescribeRegistrosAjenos() throws Exception {
+		Review betoReview = reviewRepository.save(Review.builder().rating(5).comment("Excelente").user(beto)
+				.hotel(room.getHotel()).createdAt(LocalDateTime.now()).build());
+		String body = """
+				{"id":%d,"rating":1,"comment":"HACKED","hotelId":%d}
+				""".formatted(betoReview.getId(), room.getHotel().getId());
+
+		mockMvc.perform(as(login(ana), post("/api/review/registration-review")).contentType(MediaType.APPLICATION_JSON)
+				.content(body))
+				.andExpect(status().isOk());
+
+		Review untouched = reviewRepository.findById(betoReview.getId()).orElseThrow();
+		assertThat(untouched.getComment()).isEqualTo("Excelente");
+		assertThat(untouched.getUser().getId()).isEqualTo(beto.getId());
+		assertThat(reviewRepository.findAll()).anyMatch(r -> "HACKED".equals(r.getComment())
+				&& r.getUser().getId().equals(ana.getId()) && !r.getId().equals(betoReview.getId()));
+	}
+
+	@Test
+	void detalleDePagoInexistenteResponde404() throws Exception {
+		mockMvc.perform(as(login(admin), get("/api/payment/get-payment-details/{id}", 999999)))
+				.andExpect(status().isNotFound())
+				.andExpect(jsonPath("$.code").value("PAYMENT_NOT_FOUND"));
+	}
+
+	@Test
+	void unTokenViejoNoSirveParaOtraCuentaConElMismoEmail() throws Exception {
+		String oldAnaToken = login(ana);
+		String oldUsername = ana.getUsername();
+
+		// Un ADMIN renombra a Ana y otra persona se registra con el email anterior
+		mockMvc.perform(as(login(admin), put("/api/user/update-user/{id}", ana.getId())).contentType(MediaType.APPLICATION_JSON)
+				.content("{\"username\":\"rbac-ana-nueva@correo.com\"}"))
+				.andExpect(status().isOk());
+		createUser(oldUsername, RoleType.USER);
+
+		// El token de Ana tiene sub = email anterior, pero su uid no coincide con la cuenta nueva
+		mockMvc.perform(as(oldAnaToken, get("/api/user/current")))
+				.andExpect(status().isUnauthorized());
 	}
 }

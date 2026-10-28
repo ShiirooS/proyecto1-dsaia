@@ -20,6 +20,10 @@ public class ReservationController {
 
     @PostMapping("/registration-reservation")
     public ResponseEntity<ApiResponse> createReservation(@RequestBody ReservationDTO reservationRequest){
+    	// HU-04: al crear, el id nunca se toma del body (con un id ajeno save() sobrescribía ese registro)
+    	if (reservationRequest != null) {
+    		reservationRequest.setId(null);
+    	}
         System.out.println("paso x aqui-controller" +reservationRequest.getUserId());
         if(reservationRequest==null){
             return ResponseEntity.badRequest().body(new ApiResponse("Error: la solicitud están vacíos"));

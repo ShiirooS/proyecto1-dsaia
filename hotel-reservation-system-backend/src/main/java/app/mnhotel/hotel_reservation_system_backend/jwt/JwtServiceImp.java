@@ -7,6 +7,7 @@ import java.util.Map;
 import java.util.function.Function;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.core.userdetails.UserDetails;
+import app.mnhotel.hotel_reservation_system_backend.entity.User;
 import app.mnhotel.hotel_reservation_system_backend.jwt.JwtService;
 import org.springframework.stereotype.Service;
 import io.jsonwebtoken.Claims;
@@ -30,8 +31,15 @@ public class JwtServiceImp implements JwtService{
 		this.expirationMs = expirationMs;
 	}
 
+    // Claim con el id inmutable del usuario: el username (email) puede cambiar
+    private static final String UID_CLAIM = "uid";
+
     public String getToken(UserDetails user) {
-        return getToken(new HashMap<>(), user);
+        Map<String, Object> claims = new HashMap<>();
+        if (user instanceof User appUser) {
+            claims.put(UID_CLAIM, appUser.getId());
+        }
+        return getToken(claims, user);
     }
 
     private String getToken(Map<String,Object> extraClaims, UserDetails user) {
@@ -51,7 +59,17 @@ public class JwtServiceImp implements JwtService{
 
     public boolean isTokenValid(String token, UserDetails userDetails) {
         final String username=getUsernameFromToken(token);
-        return (username.equals(userDetails.getUsername())&& !isTokenExpired(token));
+        return (username.equals(userDetails.getUsername()) && !isTokenExpired(token) && sameUser(token, userDetails));
+    }
+
+    // HU-04: si un ADMIN renombra una cuenta y otra persona se registra con el email anterior,
+    // el token viejo (mismo sub) no debe servir para la cuenta nueva: se compara el id inmutable
+    private boolean sameUser(String token, UserDetails userDetails) {
+        if (!(userDetails instanceof User appUser)) {
+            return true;
+        }
+        Object uid = getAllClaims(token).get(UID_CLAIM);
+        return uid != null && appUser.getId() != null && appUser.getId().equals(((Number) uid).longValue());
     }
 
     private Claims getAllClaims(String token)

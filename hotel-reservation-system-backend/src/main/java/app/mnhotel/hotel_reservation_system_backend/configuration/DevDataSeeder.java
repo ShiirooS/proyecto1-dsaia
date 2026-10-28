@@ -37,8 +37,8 @@ import lombok.extern.slf4j.Slf4j;
 @RequiredArgsConstructor
 public class DevDataSeeder implements CommandLineRunner {
 
-	public static final String ADMIN_USERNAME = "admin@hotelmn.com";
-	public static final String GUEST_USERNAME = "huesped@correo.com";
+	public static final String ADMIN_USERNAME = "admin@hotel.com";
+	public static final String GUEST_USERNAME = "demo@hotel.com";
 
 	private static final String IMG_SIMPLE = "https://img.freepik.com/free-photo/luxury-bedroom-suite-resort-high-rise-hotel-with-working-table_105762-1783.jpg";
 	private static final String IMG_DOBLE = "https://img.freepik.com/foto-gratis/suite-dormitorio-moderno-clasico-lujo-hotel_105762-1787.jpg";
@@ -57,8 +57,8 @@ public class DevDataSeeder implements CommandLineRunner {
 		if (userRepository.count() > 0) {
 			return;
 		}
-		createUser(ADMIN_USERNAME, "Admin1234", "Administrador Hotel MN", RoleType.ADMIN);
-		createUser(GUEST_USERNAME, "Huesped123", "Huésped Recurrente", RoleType.USER);
+		createUser(ADMIN_USERNAME, "Admin12345", "Administrador Hotel MN", RoleType.ADMIN);
+		createUser(GUEST_USERNAME, "Demo12345", "Huésped Demo", RoleType.USER);
 		List<User> syntheticGuests = new ArrayList<>();
 		for (int i = 1; i <= 5; i++) {
 			syntheticGuests.add(createUser("cliente" + i + "@correo.com", "Cliente1234", "Cliente " + i, RoleType.USER));
