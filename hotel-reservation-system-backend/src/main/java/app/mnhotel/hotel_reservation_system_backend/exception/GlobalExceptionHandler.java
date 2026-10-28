@@ -6,8 +6,13 @@ import java.util.Map;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.converter.HttpMessageNotReadableException;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.authentication.BadCredentialsException;
+import org.springframework.web.ErrorResponse;
+import org.springframework.web.HttpMediaTypeNotAcceptableException;
+import org.springframework.web.HttpMediaTypeNotSupportedException;
 import org.springframework.web.HttpRequestMethodNotSupportedException;
+import org.springframework.web.bind.ServletRequestBindingException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.MissingServletRequestParameterException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
@@ -71,6 +76,24 @@ public class GlobalExceptionHandler {
 	public ResponseEntity<ApiResponse> handleMethodNotAllowed(HttpRequestMethodNotSupportedException e) {
 		return ResponseEntity.status(HttpStatus.METHOD_NOT_ALLOWED)
 				.body(new ApiResponse("Método HTTP no soportado", "METHOD_NOT_ALLOWED"));
+	}
+
+	// p. ej. @PreAuthorize: debe ser 403, no 500
+	@ExceptionHandler(AccessDeniedException.class)
+	public ResponseEntity<ApiResponse> handleAccessDenied(AccessDeniedException e) {
+		return ResponseEntity.status(HttpStatus.FORBIDDEN)
+				.body(new ApiResponse("No tiene permisos para acceder a este recurso", "FORBIDDEN"));
+	}
+
+	// Resto de errores de Spring MVC con estado propio (415, 406, ...): se respeta su código 4xx en lugar de un 500
+	@ExceptionHandler({ HttpMediaTypeNotSupportedException.class, HttpMediaTypeNotAcceptableException.class,
+			ServletRequestBindingException.class })
+	public ResponseEntity<ApiResponse> handleFrameworkError(Exception e) {
+		HttpStatus status = HttpStatus.resolve(((ErrorResponse) e).getStatusCode().value());
+		if (status == null || status.is5xxServerError()) {
+			return handleUnexpected(e);
+		}
+		return ResponseEntity.status(status).body(new ApiResponse(status.getReasonPhrase(), "MALFORMED_REQUEST"));
 	}
 
 	@ExceptionHandler(Exception.class)
