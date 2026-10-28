@@ -2,15 +2,30 @@ package app.mnhotel.hotel_reservation_system_backend.repository;
 
 import java.time.LocalDate;
 import java.util.List;
+import java.util.Optional;
 
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Lock;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 import app.mnhotel.hotel_reservation_system_backend.entity.Reservation;
+import jakarta.persistence.LockModeType;
 
 @Repository
 public interface ReservationRepository extends JpaRepository<Reservation,Long>{
+
+	/**
+	 * HU-05: historial del huésped, de la llegada más reciente a la más antigua (API-CONTRACT §6.2).
+	 */
+	List<Reservation> findByUserIdOrderByStartDateDescIdDesc(Long userId);
+
+	/**
+	 * HU-05: reserva propia con la fila bloqueada, para que dos cancelaciones simultáneas no reembolsen dos veces.
+	 */
+	@Lock(LockModeType.PESSIMISTIC_WRITE)
+	@Query("select r from Reservation r where r.id = :id and r.user.id = :userId")
+	Optional<Reservation> findOwnedByIdForUpdate(@Param("id") Long id, @Param("userId") Long userId);
 
 	/**
 	 * HU-02: reservas CONFIRMED de la habitación que ocupan alguna noche en [from, toExclusive).

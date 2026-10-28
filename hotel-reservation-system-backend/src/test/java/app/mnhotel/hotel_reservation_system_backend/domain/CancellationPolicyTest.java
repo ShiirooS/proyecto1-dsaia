@@ -57,4 +57,20 @@ class CancellationPolicyTest {
 		assertThat(CancellationPolicy.evaluate(ReservationStatus.CANCELLED, CHECK_IN, 450, checkInAt.minusDays(10), CHECK_IN_TIME)
 				.cancellable()).isFalse();
 	}
+
+	@Test
+	void unSegundoDespuesDelLimiteYaNoSeReembolsaPeroSiSeCancela() {
+		// CA-05.3: 2026-12-18T15:00:01
+		Cancellation late = CancellationPolicy.evaluate(ReservationStatus.CONFIRMED, CHECK_IN, 450,
+				LocalDateTime.of(2026, 12, 18, 15, 0, 1), CHECK_IN_TIME);
+		assertThat(late.cancellable()).isTrue();
+		assertThat(late.refundable()).isFalse();
+		assertThat(late.refundAmountIfCancelledNow()).isZero();
+
+		// Un instante antes del check-in todavía se puede cancelar (sin reembolso)
+		Cancellation lastMoment = CancellationPolicy.evaluate(ReservationStatus.CONFIRMED, CHECK_IN, 450,
+				CHECK_IN.atTime(CHECK_IN_TIME).minusSeconds(1), CHECK_IN_TIME);
+		assertThat(lastMoment.cancellable()).isTrue();
+		assertThat(lastMoment.refundable()).isFalse();
+	}
 }

@@ -1,150 +1,146 @@
-import { FaCalendarAlt, FaCreditCard, FaDownload, FaStar } from 'react-icons/fa';
+import { useCallback, useEffect, useRef, useState } from 'react';
+import { Link } from 'react-router-dom';
 import Header from '../components/Layouts/Header';
 import HeaderBanner from '../components/Layouts/HeaderBanner';
+import ReservationCard from '../components/Bookings/ReservationCard';
+import CancelReservationModal from '../components/Modals/CancelReservationModal';
+import { BOOKING_TABS, groupByTab, type BookingTab } from '../components/Bookings/bookingUtils';
+import { listMyReservations, type MyReservation } from '../services/reservationService';
 
-const bookings = [
-  {
-    id: 'ORD001',
-    roomName: 'Deluxe Suite',
-    pricePerNight: 199,
-    checkIn: '2023-07-01',
-    checkOut: '2023-07-05',
-    amount: 796,
-    date: '2023-06-15',
-    status: 'Booked'
-  },
-  {
-    id: 'ORD002',
-    roomName: 'Ocean View Room',
-    pricePerNight: 249,
-    checkIn: '2023-08-10',
-    checkOut: '2023-08-15',
-    amount: 1245,
-    date: '2023-07-20',
-    status: 'Canceled'
-  },
-  {
-    id: 'ORD003',
-    roomName: 'Penthouse Suite',
-    pricePerNight: 399,
-    checkIn: '2023-09-01',
-    checkOut: '2023-09-03',
-    amount: 798,
-    date: '2023-08-01',
-    status: 'Booked'
-  },
-  {
-    id: 'ORD004',
-    roomName: 'Garden View Room',
-    pricePerNight: 149,
-    checkIn: '2023-10-12',
-    checkOut: '2023-10-15',
-    amount: 447,
-    date: '2023-09-10',
-    status: 'Canceled'
-  },
-  {
-    id: 'ORD005',
-    roomName: 'Family Suite',
-    pricePerNight: 299,
-    checkIn: '2023-11-05',
-    checkOut: '2023-11-10',
-    amount: 1495,
-    date: '2023-10-20',
-    status: 'Booked'
-  },
-  {
-    id: 'ORD006',
-    roomName: 'Luxury Suite',
-    pricePerNight: 499,
-    checkIn: '2023-12-01',
-    checkOut: '2023-12-07',
-    amount: 2994,
-    date: '2023-11-15',
-    status: 'Booked'
-  }
-];
+const EMPTY_TAB_MESSAGES: Record<BookingTab, string> = {
+  upcoming: 'No tienes reservas próximas.',
+  past: 'Todavía no tienes estancias pasadas.',
+  cancelled: 'No tienes reservas canceladas.',
+};
 
+/** HU-05: "Mis reservas" with upcoming, past and cancelled stays, and self-service cancellation. */
 export default function Bookings() {
+  const [reservations, setReservations] = useState<MyReservation[] | null>(null);
+  const [loadFailed, setLoadFailed] = useState(false);
+  const [activeTab, setActiveTab] = useState<BookingTab>('upcoming');
+  const [toCancel, setToCancel] = useState<MyReservation | null>(null);
+  const [notice, setNotice] = useState<string | null>(null);
+  const tabRefs = useRef<Record<BookingTab, HTMLButtonElement | null>>({ upcoming: null, past: null, cancelled: null });
+
+  const reload = useCallback(async () => {
+    try {
+      setReservations(await listMyReservations());
+      setLoadFailed(false);
+    } catch {
+      setLoadFailed(true);
+    }
+  }, []);
+
+  useEffect(() => {
+    void reload();
+  }, [reload]);
+
+  const handleCancelled = (updated: MyReservation) => {
+    setToCancel(null);
+    setReservations((current) => current?.map((r) => (r.id === updated.id ? updated : r)) ?? null);
+    setActiveTab('cancelled');
+    const refunded = updated.payment?.refundedAmount ?? 0;
+    setNotice(
+      refunded > 0
+        ? `Reserva n.º ${updated.id} cancelada. Recibirás un reembolso de $${refunded}.`
+        : `Reserva n.º ${updated.id} cancelada sin reembolso.`,
+    );
+  };
+
+  const handleTabKeyDown = (event: React.KeyboardEvent, index: number) => {
+    if (event.key !== 'ArrowRight' && event.key !== 'ArrowLeft') return;
+    const step = event.key === 'ArrowRight' ? 1 : -1;
+    const next = BOOKING_TABS[(index + step + BOOKING_TABS.length) % BOOKING_TABS.length].id;
+    setActiveTab(next);
+    tabRefs.current[next]?.focus();
+  };
+
+  const groups = reservations ? groupByTab(reservations) : null;
+  const visible = groups ? groups[activeTab] : [];
+
   return (
     <div>
-    <Header />
-    <HeaderBanner/>
-    <main className='flex'>
-        <section className="w-full py-2 md:py-2 lg:py-0 flex flex-col items-center justify-center">
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 max-w-7xl mx-auto py-10 px-4 sm:px-6 lg:px-2">
-                {bookings.map((booking) => (
-                <div key={booking.id} className="bg-white shadow-md rounded-lg overflow-hidden">
-                    <div className="p-6">
-                    <div className="flex justify-between items-center mb-4">
-                        <h2 className="text-2xl font-bold text-gray-800">{booking.roomName}</h2>
-                        <span
-                        className={`px-3 py-1 rounded-full text-sm font-semibold ${
-                            booking.status === 'Booked'
-                            ? 'bg-green-100 text-green-800'
-                            : 'bg-red-100 text-red-800'
-                        }`}
-                        >
-                        {booking.status}
-                        </span>
-                    </div>
-                    <div className="grid grid-cols-1 gap-4">
-                        <div className="flex items-center">
-                        
-                        <span className="text-gray-700 font-semibold">${booking.pricePerNight} per night </span>
-                        </div>
-                        <div className="flex items-center">
-                        <FaCalendarAlt className="h-5 w-5 text-gray-500 mr-2" />
-                            <div className="text-gray-600 flex">
-                                    <span className="font-bold mr-2">Check-in:</span> 
-                                    <span>{booking.checkIn}</span>
-                            </div>
-                        </div>
-                        <div className="flex items-center">
-                        <FaCalendarAlt className="h-5 w-5 text-gray-500 mr-2" />
-                            <div className="text-gray-600 flex">
-                                    <span className="font-bold mr-2">Check-out:</span> 
-                                    <span>{booking.checkOut}</span>
-                            </div>
-                        </div>
-                        <div className="flex items-center">
-                        <FaCreditCard className="h-5 w-5 text-gray-500 mr-2" />
-                            <div className="text-gray-600 flex">
-                                    <span className="font-bold mr-2">Total Amount:</span> 
-                                    <span>${booking.amount}</span>
-                            </div>
-                        </div>
-                        <div className="flex items-center">
-                        <FaCalendarAlt className="h-5 w-5 text-gray-500 mr-2" />
-                            <div className="text-gray-600 flex">
-                                    <span className="font-bold mr-2">Booking Date:</span> 
-                                    <span>{booking.date}</span>
-                            </div>
-                        </div>
-                        <div className="flex items-center">
-                            <div className="text-gray-600 flex">
-                                    <span className="font-bold mr-2">Order ID:</span> 
-                                    <span>{booking.id}</span>
-                            </div>
-                        </div>
-                    </div>
-                    <div className="mt-6 flex flex-wrap justify-center gap-4">
-                        <button className="flex items-center justify-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
-                        <FaDownload className="h-5 w-5 mr-2" />
-                        Download PDF
-                        </button>
-                        <button className="flex items-center justify-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-teal-600 hover:bg-teal-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-yellow-500">
-                        <FaStar className="h-5 w-5 mr-2" />
-                        Rate & Review
-                        </button>
-                    </div>
-                    </div>
-                </div>
-                ))}
-            </div>
-        </section>
+      <Header />
+      <HeaderBanner />
+      <main className="mx-auto max-w-7xl px-4 py-10 sm:px-6 lg:px-8">
+        <h1 className="mb-6 text-2xl font-bold text-gray-900">Mis reservas</h1>
 
-    </main>
+        {notice && (
+          <p role="status" className="mb-6 rounded-md bg-green-50 p-3 text-green-800">
+            {notice}
+          </p>
+        )}
+
+        {loadFailed ? (
+          <p role="alert" className="text-red-700">
+            No se pudieron cargar tus reservas.{' '}
+            <button type="button" onClick={reload} className="underline">
+              Reintentar
+            </button>
+          </p>
+        ) : groups === null ? (
+          <p role="status" className="text-gray-500">
+            Cargando tus reservas...
+          </p>
+        ) : reservations?.length === 0 ? (
+          <div className="rounded-lg border border-dashed border-gray-300 bg-white p-10 text-center">
+            <p className="text-lg font-semibold text-gray-800">Aún no tienes reservas</p>
+            <Link to="/rooms" className="mt-4 inline-block rounded-md bg-orange-600 px-4 py-2 text-white hover:bg-orange-700">
+              Explorar habitaciones
+            </Link>
+          </div>
+        ) : (
+          <>
+            <div role="tablist" aria-label="Mis reservas" className="mb-6 flex gap-2 border-b border-gray-200">
+              {BOOKING_TABS.map((tab, index) => {
+                const selected = tab.id === activeTab;
+                return (
+                  <button
+                    key={tab.id}
+                    ref={(element) => {
+                      tabRefs.current[tab.id] = element;
+                    }}
+                    type="button"
+                    role="tab"
+                    id={`tab-${tab.id}`}
+                    aria-selected={selected}
+                    aria-controls={`panel-${tab.id}`}
+                    tabIndex={selected ? 0 : -1}
+                    onClick={() => setActiveTab(tab.id)}
+                    onKeyDown={(event) => handleTabKeyDown(event, index)}
+                    className={`-mb-px border-b-2 px-4 py-2 font-medium focus:outline-none focus-visible:ring focus-visible:ring-orange-300 ${
+                      selected ? 'border-orange-600 text-orange-700' : 'border-transparent text-gray-600 hover:text-gray-900'
+                    }`}
+                  >
+                    {tab.label} ({groups[tab.id].length})
+                  </button>
+                );
+              })}
+            </div>
+
+            <section role="tabpanel" id={`panel-${activeTab}`} aria-labelledby={`tab-${activeTab}`}>
+              {visible.length === 0 ? (
+                <p className="text-gray-600">{EMPTY_TAB_MESSAGES[activeTab]}</p>
+              ) : (
+                <div className="grid grid-cols-1 gap-8 md:grid-cols-2 lg:grid-cols-3">
+                  {visible.map((reservation) => (
+                    <ReservationCard key={reservation.id} reservation={reservation} onCancel={setToCancel} />
+                  ))}
+                </div>
+              )}
+            </section>
+          </>
+        )}
+
+        {toCancel && (
+          <CancelReservationModal
+            reservation={toCancel}
+            onClose={() => setToCancel(null)}
+            onCancelled={handleCancelled}
+            onStale={() => void reload()}
+          />
+        )}
+      </main>
     </div>
   );
 }

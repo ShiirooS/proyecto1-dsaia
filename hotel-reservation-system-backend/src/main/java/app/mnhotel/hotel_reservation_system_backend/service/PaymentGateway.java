@@ -13,4 +13,7 @@ public interface PaymentGateway {
 
 	/** Cobra el importe y devuelve el id de transacción (txn_...); lanza 402 PAYMENT_DECLINED si se rechaza. */
 	public String charge(String cardLast4, int amount);
+
+	/** HU-05: devuelve el importe de un cobro anterior (transactionId = txn_... de charge). */
+	public void refund(String transactionId, int amount);
 }

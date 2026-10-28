@@ -110,9 +110,21 @@ public class ReservationController {
         return ResponseEntity.created(URI.create("/api/reservation/my-reservations/" + created.getId())).body(created);
     }
 
+    // HU-05: historial del huésped autenticado (lista vacía -> 200 []).
+    @GetMapping("/my-reservations")
+    public ResponseEntity<List<MyReservationDTO>> findMyReservations() {
+        return ResponseEntity.ok(bookingService.listMyReservations());
+    }
+
     // HU-01: detalle de una reserva propia (ajena o inexistente: 404).
     @GetMapping("/my-reservations/{id}")
     public ResponseEntity<MyReservationDTO> findMyReservation(@PathVariable Long id) {
         return ResponseEntity.ok(bookingService.getMyReservation(id));
+    }
+
+    // HU-05: cancelar una reserva propia según la política de 48 h (409 si ya estaba cancelada o pasó el check-in).
+    @PutMapping("/cancel-reservation/{id}")
+    public ResponseEntity<MyReservationDTO> cancelMyReservation(@PathVariable Long id) {
+        return ResponseEntity.ok(bookingService.cancelMyReservation(id));
     }
 }

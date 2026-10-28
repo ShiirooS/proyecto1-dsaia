@@ -13,16 +13,21 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
+import app.mnhotel.hotel_reservation_system_backend.domain.OccupancyCalculator;
+import app.mnhotel.hotel_reservation_system_backend.domain.OccupancyCalculator.Stay;
 import app.mnhotel.hotel_reservation_system_backend.entity.Hotel;
+import app.mnhotel.hotel_reservation_system_backend.entity.Payment;
 import app.mnhotel.hotel_reservation_system_backend.entity.PaymentMethod;
 import app.mnhotel.hotel_reservation_system_backend.entity.Reservation;
 import app.mnhotel.hotel_reservation_system_backend.entity.Room;
 import app.mnhotel.hotel_reservation_system_backend.entity.User;
 import app.mnhotel.hotel_reservation_system_backend.enums.CardBrand;
+import app.mnhotel.hotel_reservation_system_backend.enums.PaymentStatus;
 import app.mnhotel.hotel_reservation_system_backend.enums.ReservationStatus;
 import app.mnhotel.hotel_reservation_system_backend.enums.RoleType;
 import app.mnhotel.hotel_reservation_system_backend.repository.HotelRepository;
 import app.mnhotel.hotel_reservation_system_backend.repository.PaymentMethodRepository;
+import app.mnhotel.hotel_reservation_system_backend.repository.PaymentRepository;
 import app.mnhotel.hotel_reservation_system_backend.repository.ReservationRepository;
 import app.mnhotel.hotel_reservation_system_backend.repository.RoomRepository;
 import app.mnhotel.hotel_reservation_system_backend.repository.UserRepository;
@@ -51,6 +56,7 @@ public class DevDataSeeder implements CommandLineRunner {
 	private final HotelRepository hotelRepository;
 	private final RoomRepository roomRepository;
 	private final ReservationRepository reservationRepository;
+	private final PaymentRepository paymentRepository;
 	private final PaymentMethodRepository paymentMethodRepository;
 	private final PasswordEncoder passwordEncoder;
 	private final Clock clock;
@@ -69,7 +75,8 @@ public class DevDataSeeder implements CommandLineRunner {
 		}
 
 		List<Room> rooms = seedCatalog();
-		seedUpcomingReservations(rooms, syntheticGuests);
+		List<Reservation> demoReservations = seedDemoReservations(rooms, demo);
+		seedUpcomingReservations(rooms, syntheticGuests, demoReservations);
 		seedSavedCard(demo);
 		log.info("Datos semilla cargados (usuarios {} y {}, {} habitaciones)", ADMIN_USERNAME, GUEST_USERNAME, rooms.size());
 	}
@@ -113,7 +120,7 @@ public class DevDataSeeder implements CommandLineRunner {
 	/**
 	 * HU-02: ocupación salteada en los próximos 60 días para que el calendario muestre días ocupados.
 	 */
-	private void seedUpcomingReservations(List<Room> rooms, List<User> guests) {
+	private void seedUpcomingReservations(List<Room> rooms, List<User> guests, List<Reservation> alreadySeeded) {
 		Random random = new Random(42);
 		LocalDate today = LocalDate.now(clock);
 		List<Reservation> reservations = new ArrayList<>();
@@ -121,18 +128,59 @@ public class DevDataSeeder implements CommandLineRunner {
 			LocalDate cursor = today.plusDays(1 + random.nextInt(4));
 			while (cursor.isBefore(today.plusDays(60))) {
 				int nights = 1 + random.nextInt(4);
-				reservations.add(Reservation.builder()
-						.room(room)
-						.user(guests.get(random.nextInt(guests.size())))
-						.startDate(cursor)
-						.endDate(cursor.plusDays(nights))
-						.status(ReservationStatus.CONFIRMED)
-						.createdAt(LocalDateTime.now(clock))
-						.build());
+				// No pisar las reservas del usuario demo (dos CONFIRMED no pueden compartir noches, ADR-005)
+				if (isFree(alreadySeeded, room, cursor, cursor.plusDays(nights))) {
+					reservations.add(Reservation.builder()
+							.room(room)
+							.user(guests.get(random.nextInt(guests.size())))
+							.startDate(cursor)
+							.endDate(cursor.plusDays(nights))
+							.guests(1)
+							.totalAmount(nights * room.getPricePerNight())
+							.status(ReservationStatus.CONFIRMED)
+							.createdAt(LocalDateTime.now(clock))
+							.build());
+				}
 				cursor = cursor.plusDays(nights + 2L + random.nextInt(6));
 			}
 		}
 		reservationRepository.saveAll(reservations);
+	}
+
+	private static boolean isFree(List<Reservation> seeded, Room room, LocalDate checkIn, LocalDate checkOut) {
+		Stay candidate = new Stay(checkIn, checkOut);
+		return seeded.stream()
+				.filter(r -> r.getRoom() == room && r.getStatus() == ReservationStatus.CONFIRMED)
+				.noneMatch(r -> OccupancyCalculator.overlaps(candidate, new Stay(r.getStartDate(), r.getEndDate())));
+	}
+
+	/**
+	 * HU-05: historial del usuario demo para probar "Mis reservas": una próxima reembolsable, una que empieza mañana
+	 * (cancelable sin reembolso), una pasada y una cancelada con reembolso. Todas pagadas con su VISA ••••4242.
+	 */
+	private List<Reservation> seedDemoReservations(List<Room> rooms, User demo) {
+		LocalDate today = LocalDate.now(clock);
+		List<Reservation> seeded = new ArrayList<>();
+		seeded.add(demoReservation(demo, rooms.get(1), today.plusDays(20), 3, ReservationStatus.CONFIRMED, today.minusDays(5)));
+		seeded.add(demoReservation(demo, rooms.get(0), today.plusDays(1), 2, ReservationStatus.CONFIRMED, today.minusDays(10)));
+		seeded.add(demoReservation(demo, rooms.get(2), today.minusDays(30), 3, ReservationStatus.CONFIRMED, today.minusDays(60)));
+		seeded.add(demoReservation(demo, rooms.get(5), today.plusDays(10), 2, ReservationStatus.CANCELLED, today.minusDays(20)));
+		return seeded;
+	}
+
+	private Reservation demoReservation(User demo, Room room, LocalDate checkIn, int nights, ReservationStatus status,
+			LocalDate bookedOn) {
+		int total = nights * room.getPricePerNight();
+		LocalDateTime bookedAt = bookedOn.atTime(11, 30);
+		boolean cancelled = status == ReservationStatus.CANCELLED;
+		Reservation reservation = reservationRepository.save(Reservation.builder()
+				.room(room).user(demo).startDate(checkIn).endDate(checkIn.plusDays(nights)).guests(1).totalAmount(total)
+				.status(status).createdAt(bookedAt).cancelledAt(cancelled ? bookedAt.plusDays(3) : null).build());
+		paymentRepository.save(Payment.builder().reservation(reservation).amount(total)
+				.status(cancelled ? PaymentStatus.REFUNDED : PaymentStatus.COMPLETED).refundedAmount(cancelled ? total : 0)
+				.cardBrand(CardBrand.VISA.name()).cardLast4("4242").transactionId("txn_demo" + reservation.getId())
+				.paymentDate(bookedAt).build());
+		return reservation;
 	}
 
 	/**
