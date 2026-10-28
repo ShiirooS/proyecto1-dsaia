@@ -51,9 +51,9 @@ describe('AvailabilityCalendar', () => {
 
   it('pastDaysAreDisabled', async () => {
     render(<Harness />)
-    const past = await day('27', 'octubre')
+    // Esperar al nombre completo: el botón existe antes de que termine de cargar la disponibilidad
+    const past = await screen.findByRole('button', { name: '27 de octubre de 2026, no disponible' })
     expect(past).toBeDisabled()
-    expect(past).toHaveAccessibleName('27 de octubre de 2026, no disponible')
     expect(await day('28', 'octubre')).toBeEnabled()
   })
 
