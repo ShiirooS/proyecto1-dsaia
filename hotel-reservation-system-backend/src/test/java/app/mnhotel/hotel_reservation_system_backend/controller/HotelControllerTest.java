@@ -11,6 +11,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.http.MediaType;
+import org.springframework.security.test.context.support.WithMockUser;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
 
@@ -26,6 +27,7 @@ class HotelControllerTest {
 	private MockMvc mockMvc;
 
 	@Test
+	@WithMockUser(roles = "ADMIN")
 	void registraYListaUnHotel() throws Exception {
 		String body = """
 				{"name":"Hotel Prueba","location":"Panamá","description":"Frente al mar","rating":4.5}

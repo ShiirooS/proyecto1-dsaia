@@ -1,5 +1,6 @@
 package app.mnhotel.hotel_reservation_system_backend.response;
 
+import app.mnhotel.hotel_reservation_system_backend.dto.UserProfileDTO;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -11,5 +12,5 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 public class AuthResponse {
 	private String token;
+	private UserProfileDTO user;
 }
-

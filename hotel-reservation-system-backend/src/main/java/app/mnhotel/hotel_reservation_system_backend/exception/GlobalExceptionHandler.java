@@ -4,6 +4,7 @@ import java.util.stream.Collectors;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.AuthenticationException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
@@ -19,6 +20,16 @@ public class GlobalExceptionHandler {
 	@ExceptionHandler(ResourceNotFoundException.class)
 	public ResponseEntity<ApiResponse> handleNotFound(ResourceNotFoundException e) {
 		return ResponseEntity.status(HttpStatus.NOT_FOUND).body(new ApiResponse(e.getMessage()));
+	}
+
+	@ExceptionHandler(ConflictException.class)
+	public ResponseEntity<ApiResponse> handleConflict(ConflictException e) {
+		return ResponseEntity.status(HttpStatus.CONFLICT).body(new ApiResponse(e.getMessage()));
+	}
+
+	@ExceptionHandler(AuthenticationException.class)
+	public ResponseEntity<ApiResponse> handleAuthentication(AuthenticationException e) {
+		return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(new ApiResponse(e.getMessage()));
 	}
 
 	@ExceptionHandler(MethodArgumentNotValidException.class)

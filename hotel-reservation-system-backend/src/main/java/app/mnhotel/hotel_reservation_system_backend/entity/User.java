@@ -25,11 +25,24 @@ public class User {
     @Column(name="username", unique = true, nullable = false)
     private String username;
     
+    // Hash BCrypt, nunca la contraseña en texto plano
     @Column(name="password")
+    @JsonIgnore
     private String password;
     
     @Column(name="email", unique = true, nullable = false)
     private String email;
+    
+    @Column(name="full_name")
+    private String fullName;
+    
+    @Column(name="phone")
+    private String phone;
+    
+    @Enumerated(EnumType.STRING)
+    @Column(name="role", nullable = false)
+    @Builder.Default
+    private Role role = Role.USER;
     
     @Column(name="created_at")
     private LocalDateTime createdAt;
@@ -39,6 +52,7 @@ public class User {
     private List<Reservation> reservations;
     
     @OneToMany(mappedBy = "user", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
+    @JsonIgnore
     private List<Review> reviews;
 
 }
