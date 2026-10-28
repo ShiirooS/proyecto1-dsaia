@@ -1,6 +1,6 @@
 # ADR-002 — H2 (modo PostgreSQL) para test/dev y PostgreSQL real vía docker-compose
 
-- **Estado**: Aceptado (2026-10-28) — implementado en `4dca3a6` y `bf107a7`
+- **Estado**: Aceptado (2026-10-28) — implementado en el archivo `origin/archive/main-HU-00`; se porta a `developer` en HU-00 (`feature/HU-00-base-tecnica-v2`)
 - **HU**: HU-00
 
 ## Contexto
@@ -19,7 +19,7 @@ Reglas de portabilidad (obligatorias en revisión de código):
 1. Solo JPQL o métodos derivados de Spring Data. **Prohibido** `nativeQuery = true` y funciones propias de Postgres (`date_trunc`, `generate_series`, `daterange`, `EXCLUDE`).
 2. Agregaciones por mes en Java (`OccupancyCalculator`), no en SQL.
 3. Sin columnas con nombres reservados en H2 (`value`, `year`, `month`, `day`, `user`, `order`, `key`).
-4. Dinero con `BigDecimal` + `@Column(precision = 10, scale = 2)`; enums con `@Enumerated(EnumType.STRING)`.
+4. Dinero en enteros (`Integer`, convención de `developer`); enums con `@Enumerated(EnumType.STRING)`; `Room.amenities` (`List<String>`) se valida en H2 con el primer test de caracterización y, si no es portable, pasa a `@ElementCollection`.
 
 ## Alternativas consideradas
 
@@ -34,4 +34,4 @@ Reglas de portabilidad (obligatorias en revisión de código):
 - (+) `git clone` → `./mvnw spring-boot:run` funciona sin instalar nada más, con datos de demo.
 - (+) CI rápida y determinista.
 - (−) H2 no es Postgres: pueden aparecer diferencias en bloqueos, mayúsculas o tipos. Mitigación: QA arranca con el perfil `postgres` y ejecuta el checklist manual antes de fusionar a `main`.
-- (−) `ddl-auto=update` en `postgres` no elimina columnas renombradas (`availbility`, `start_date`). Mitigación: `docker compose down -v` al cambiar el modelo. Las migraciones quedan fuera de alcance.
+- (−) `ddl-auto=update` en `postgres` no cambia tipos de columna (`start_date`/`end_date` de timestamp a date, `role` de entero a texto). Mitigación: `docker compose down -v` al cambiar el modelo. Las migraciones quedan fuera de alcance.

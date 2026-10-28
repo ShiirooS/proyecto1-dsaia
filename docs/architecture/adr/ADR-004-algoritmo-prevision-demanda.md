@@ -1,7 +1,7 @@
 # ADR-004 — Algoritmo de previsión de demanda (HU-03)
 
 - **Estado**: Aceptado (2026-10-28). Este documento es **normativo**: el código y los tests de `DemandForecastCalculator` y `PricingRules` deben reproducir exactamente los vectores de la §5.
-- **HU**: HU-03 · Endpoint: API-CONTRACT §6.1
+- **HU**: HU-03 · Endpoint: API-CONTRACT §10.1 (`GET /api/analytics/demand-forecast`)
 
 ## 1. Contexto
 
@@ -22,7 +22,7 @@ Con exactamente dos ciclos de 12 meses, el ajuste OLS tiene solución cerrada, a
 Entradas: `clock`, `hotelId` opcional, `H` (horizonte 1–12, por defecto 6).
 
 1. **Ventana.** `M_25` = mes actual (`YearMonth.now(clock)`). `M_1..M_24` = los 24 meses completos anteriores (`M_t = M_25.minusMonths(25 − t)`).
-2. **Inventario.** `R` = número de habitaciones `active` en el alcance. Si `R = 0` → `INSUFFICIENT_HISTORY`. *Limitación aceptada*: se supone `R` constante durante todo el histórico.
+2. **Inventario.** `R` = número de habitaciones activas (`availability = true`) en el alcance. Si `R = 0` → `INSUFFICIENT_HISTORY`. *Limitación aceptada*: se supone `R` constante durante todo el histórico.
 3. **Ocupación mensual** (`OccupancyCalculator`, en Java). `O_t` = Σ, sobre las reservas `CONFIRMED` del alcance, de los días de `[checkIn, checkOut) ∩ [primer día de M_t, primer día de M_t+1)`. `Cap_t = R × díasDelMes(M_t)`. `y_t = min(1, O_t / Cap_t)` (en `double`). Si `Σ O_t = 0` → `INSUFFICIENT_HISTORY`.
 4. **Posición en el ciclo.** `p(t) = ((t − 1) mod 12) + 1`. El mes calendario de la posición `p` es el de `M_p`.
 5. **Pendiente.**  `b = (1/144) · Σ_{t=13..24} (y_t − y_{t−12})`  (cambio interanual medio dividido entre 12).
@@ -40,7 +40,7 @@ Entradas: `clock`, `hotelId` opcional, `H` (horizonte 1–12, por defecto 6).
     | `0.40 ≤ occ < 0.70` | 0 |
     | `< 0.40` | −10 |
 
-    `suggestedPricePerNight = round(P̄ × (100 + pct) / 100, 2, HALF_UP)`, donde `P̄` es la media de `pricePerNight` de las habitaciones activas del alcance (también redondeada a 2 decimales).
+    `suggestedPricePerNight = round(P̄ × (100 + pct) / 100, 0, HALF_UP)` (**entero**, porque `Room.pricePerNight` es `Integer` en `developer`), donde `P̄` es la media de `pricePerNight` de las habitaciones activas (`availability = true`) del alcance, redondeada a 2 decimales y publicada como `averagePricePerNight`.
 12. **Inventario** (`PricingRules`), con ocupación objetivo `0.80`:
 
     | Condición | `inventoryAction` | `recommendedActiveRooms` |
@@ -70,7 +70,7 @@ Para una `b` fija, el `c_p` que minimiza el error cuadrático es la media de `y 
 
 Tolerancia de comparación en `double`: `1e-9` antes de redondear; las salidas redondeadas se comparan exactas.
 
-### 5.1 Caso principal (reloj fijo `2027-01-15T10:00`, `R = 10`, `P̄ = 100.00`, `H = 12`)
+### 5.1 Caso principal (reloj fijo `2027-01-15T10:00`, `R = 10`, `P̄ = 100.00`, `H = 12`; precios sugeridos enteros)
 
 Entrada `y_t` (ventana `2025-01..2026-12`; el año 2 = el año 1 + 0.12):
 
@@ -89,18 +89,18 @@ Pronóstico esperado:
 
 | Mes | t | `a + b·t + S` | `occ` | Noches | % precio | Precio | Acción | Habitaciones |
 |-----|---|---------------|-------|--------|----------|--------|--------|--------------|
-| 2027-01 | 25 | 0.69 | 0.6900 | 214 | 0 | 100.00 | KEEP | 10 |
-| 2027-02 | 26 | 0.69 | 0.6900 | 193 | 0 | 100.00 | KEEP | 10 |
-| 2027-03 | 27 | 0.79 | 0.7900 | 245 | 8 | 108.00 | KEEP | 10 |
-| 2027-04 | 28 | 0.79 | 0.7900 | 237 | 8 | 108.00 | KEEP | 10 |
-| 2027-05 | 29 | 0.89 | 0.8900 | 276 | 15 | 115.00 | INCREASE | 12 |
-| 2027-06 | 30 | 0.99 | 0.9900 | 297 | 15 | 115.00 | INCREASE | 13 |
-| 2027-07 | 31 | **1.09** | **1.0000** (clamp) | 310 | 15 | 115.00 | INCREASE | 13 |
-| 2027-08 | 32 | **1.09** | **1.0000** (clamp) | 310 | 15 | 115.00 | INCREASE | 13 |
-| 2027-09 | 33 | 0.89 | 0.8900 | 267 | 15 | 115.00 | INCREASE | 12 |
-| 2027-10 | 34 | 0.79 | 0.7900 | 245 | 8 | 108.00 | KEEP | 10 |
-| 2027-11 | 35 | 0.69 | 0.6900 | 207 | 0 | 100.00 | KEEP | 10 |
-| 2027-12 | 36 | 0.69 | 0.6900 | 214 | 0 | 100.00 | KEEP | 10 |
+| 2027-01 | 25 | 0.69 | 0.6900 | 214 | 0 | 100 | KEEP | 10 |
+| 2027-02 | 26 | 0.69 | 0.6900 | 193 | 0 | 100 | KEEP | 10 |
+| 2027-03 | 27 | 0.79 | 0.7900 | 245 | 8 | 108 | KEEP | 10 |
+| 2027-04 | 28 | 0.79 | 0.7900 | 237 | 8 | 108 | KEEP | 10 |
+| 2027-05 | 29 | 0.89 | 0.8900 | 276 | 15 | 115 | INCREASE | 12 |
+| 2027-06 | 30 | 0.99 | 0.9900 | 297 | 15 | 115 | INCREASE | 13 |
+| 2027-07 | 31 | **1.09** | **1.0000** (clamp) | 310 | 15 | 115 | INCREASE | 13 |
+| 2027-08 | 32 | **1.09** | **1.0000** (clamp) | 310 | 15 | 115 | INCREASE | 13 |
+| 2027-09 | 33 | 0.89 | 0.8900 | 267 | 15 | 115 | INCREASE | 12 |
+| 2027-10 | 34 | 0.79 | 0.7900 | 245 | 8 | 108 | KEEP | 10 |
+| 2027-11 | 35 | 0.69 | 0.6900 | 207 | 0 | 100 | KEEP | 10 |
+| 2027-12 | 36 | 0.69 | 0.6900 | 214 | 0 | 100 | KEEP | 10 |
 
 Con `H = 6` (valor por defecto) se devuelven solo las 6 primeras filas.
 

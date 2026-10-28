@@ -15,7 +15,7 @@ Varias reglas dependen de "ahora" y "hoy": no reservar en el pasado (HU-01), des
    - `app.reservation.check-in-time=15:00` — ⚠️ **ASSUMPTION**: hora estándar de check-in.
    - `app.reservation.max-nights=30`, `app.reservation.max-days-ahead=365`, `app.reservation.free-cancellation-hours=48`.
 3. Las marcas de tiempo se serializan como `LocalDateTime` en esa zona y sin offset (API-CONTRACT §0).
-4. `GET /api/rooms/{id}/availability` devuelve `today` y `checkInTime` para que el frontend no dependa del reloj ni de la zona del navegador.
+4. `GET /api/room/get-availability/{id}` devuelve `today` y `checkInTime` para que el frontend no dependa del reloj ni de la zona del navegador.
 5. En los tests, `@TestConfiguration` registra un `@Primary Clock.fixed(Instant, zona)`. Los tests de dominio reciben el `Clock` o la fecha por parámetro.
 
 ## Alternativas consideradas
