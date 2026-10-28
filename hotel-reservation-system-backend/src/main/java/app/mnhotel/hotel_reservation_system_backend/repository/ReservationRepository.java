@@ -27,6 +27,27 @@ public interface ReservationRepository extends JpaRepository<Reservation,Long>{
 	@Query("select r from Reservation r where r.id = :id and r.user.id = :userId")
 	Optional<Reservation> findOwnedByIdForUpdate(@Param("id") Long id, @Param("userId") Long userId);
 
+	/** HU-03: solo las fechas de una estancia (la analítica no necesita cargar usuario ni habitación). */
+	interface StayDates {
+		LocalDate getCheckIn();
+
+		LocalDate getCheckOut();
+	}
+
+	/**
+	 * HU-03: estancias CONFIRMED en habitaciones activas que ocupan alguna noche de [start, endExclusive).
+	 * hotelId null = todos los hoteles. Solo habitaciones activas, igual que el inventario R del denominador.
+	 */
+	@Query("""
+			select r.startDate as checkIn, r.endDate as checkOut from Reservation r
+			where r.status = app.mnhotel.hotel_reservation_system_backend.enums.ReservationStatus.CONFIRMED
+			  and r.room.availbility = true
+			  and (:hotelId is null or r.room.hotel.id = :hotelId)
+			  and r.startDate < :endExclusive and r.endDate > :start
+			""")
+	List<StayDates> findConfirmedStaysIntersectingPeriod(@Param("hotelId") Long hotelId, @Param("start") LocalDate start,
+			@Param("endExclusive") LocalDate endExclusive);
+
 	/**
 	 * HU-02: reservas CONFIRMED de la habitación que ocupan alguna noche en [from, toExclusive).
 	 */

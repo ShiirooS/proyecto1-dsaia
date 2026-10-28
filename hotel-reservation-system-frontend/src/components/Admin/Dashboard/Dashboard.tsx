@@ -1,42 +1,149 @@
+import { useCallback, useEffect, useRef, useState } from 'react';
+import { getDemandForecast, type DemandForecast } from '../../../services/analyticsService';
+import { toApiError } from '../../../services/apiError';
+import { fetchHotels, type HotelDTO } from '../../../services/hotelService';
+import ForecastChart from './ForecastChart';
+import ForecastTable from './ForecastTable';
+import SeasonalityChart from './SeasonalityChart';
+import StatOverview from './StatOverview';
+import { buildChartData, formatRate } from './forecastUtils';
 
+const HORIZONS = [3, 6, 12];
+const ALL_HOTELS = '';
+
+type LoadState =
+  | { status: 'loading' }
+  | { status: 'ready'; data: DemandForecast }
+  | { status: 'insufficient' }
+  | { status: 'error' };
+
+const selectClass =
+  'mt-1 block rounded-md border border-gray-300 bg-white px-3 py-2 text-sm shadow-sm focus:border-orange-500 focus:outline-none focus:ring-1 focus:ring-orange-500';
+
+/** HU-03: demand forecast for the administrator (replaces the placeholder dashboard). */
 export default function Dashboard() {
-  return (
-    <div className="mx-auto max-w-screen-xl px-4 py-8 sm:px-6 sm:py-12 lg:px-8">
-  
-      <div className="mx-auto max-w-3xl text-center">
-        <h2 className="text-3xl font-bold text-gray-900 sm:text-4xl">Trusted by eCommerce Businesses</h2>
+  const [horizon, setHorizon] = useState(6);
+  const [hotelId, setHotelId] = useState(ALL_HOTELS);
+  const [hotels, setHotels] = useState<HotelDTO[]>([]);
+  const [state, setState] = useState<LoadState>({ status: 'loading' });
+  const latestRequest = useRef(0);
 
-        <p className="mt-4 text-gray-500 sm:text-xl">
-          Lorem ipsum dolor sit amet consectetur adipisicing elit. Ratione dolores laborum labore
-          provident impedit esse recusandae facere libero harum sequi.
-        </p>
+  useEffect(() => {
+    fetchHotels()
+      .then((list) => setHotels(Array.isArray(list) ? list : []))
+      .catch(() => setHotels([]));
+  }, []);
+
+  const load = useCallback(async () => {
+    const request = ++latestRequest.current;
+    setState({ status: 'loading' });
+    try {
+      const data = await getDemandForecast({ horizon, hotelId: hotelId === ALL_HOTELS ? null : Number(hotelId) });
+      if (request === latestRequest.current) setState({ status: 'ready', data });
+    } catch (e) {
+      if (request !== latestRequest.current) return;
+      setState(toApiError(e).code === 'INSUFFICIENT_HISTORY' ? { status: 'insufficient' } : { status: 'error' });
+    }
+  }, [horizon, hotelId]);
+
+  useEffect(() => {
+    void load();
+  }, [load]);
+
+  return (
+    <section aria-labelledby="forecast-title" className="mx-auto max-w-screen-xl space-y-6">
+      <div className="flex flex-wrap items-end justify-between gap-4">
+        <div>
+          <h2 id="forecast-title" className="text-2xl font-bold text-gray-900">
+            Previsión de demanda
+          </h2>
+          <p className="mt-1 max-w-2xl text-gray-600">
+            Ocupación de los últimos 24 meses y su proyección, con una sugerencia de precio e inventario por mes.
+          </p>
+        </div>
+        <div className="flex flex-wrap gap-4">
+          <label className="text-sm font-medium text-gray-700">
+            Horizonte
+            <select value={horizon} onChange={(e) => setHorizon(Number(e.target.value))} className={selectClass}>
+              {HORIZONS.map((h) => (
+                <option key={h} value={h}>
+                  {h} meses
+                </option>
+              ))}
+            </select>
+          </label>
+          <label className="text-sm font-medium text-gray-700">
+            Hotel
+            <select value={hotelId} onChange={(e) => setHotelId(e.target.value)} className={selectClass}>
+              <option value={ALL_HOTELS}>Todos los hoteles</option>
+              {hotels.map((hotel) => (
+                <option key={hotel.id} value={String(hotel.id)}>
+                  {hotel.name}
+                </option>
+              ))}
+            </select>
+          </label>
+        </div>
       </div>
 
-      <dl className="mt-6 grid grid-cols-1 gap-4 sm:mt-8 sm:grid-cols-2 lg:grid-cols-4">
-        <div className="flex flex-col rounded-lg bg-gray-50 px-4 py-8 text-center">
-          <dt className="order-last text-lg font-medium text-gray-500">Total Sales</dt>
+      {state.status === 'loading' && (
+        <p role="status" className="rounded-lg bg-white p-8 text-center text-gray-500 shadow-sm">
+          Calculando la previsión...
+        </p>
+      )}
 
-          <dd className="text-4xl font-extrabold text-gray-600 md:text-5xl">$4.8m</dd>
-        </div>
+      {state.status === 'insufficient' && (
+        <p role="status" className="rounded-lg bg-white p-8 text-center text-gray-700 shadow-sm">
+          No hay suficiente histórico para calcular la previsión
+        </p>
+      )}
 
-        <div className="flex flex-col rounded-lg bg-gray-50 px-4 py-8 text-center">
-          <dt className="order-last text-lg font-medium text-gray-500">Official Addons</dt>
+      {state.status === 'error' && (
+        <p role="alert" className="rounded-lg bg-white p-8 text-center text-red-700 shadow-sm">
+          No se pudo cargar la previsión.{' '}
+          <button type="button" onClick={load} className="font-medium underline">
+            Reintentar
+          </button>
+        </p>
+      )}
 
-          <dd className="text-4xl font-extrabold text-gray-600 md:text-5xl">24</dd>
-        </div>
+      {state.status === 'ready' && (
+        <>
+          <StatOverview data={state.data} />
 
-        <div className="flex flex-col rounded-lg bg-gray-50 px-4 py-8 text-center">
-          <dt className="order-last text-lg font-medium text-gray-500">Total Addons</dt>
+          <div className="rounded-lg bg-white p-4 shadow-sm">
+            <h3 className="mb-2 text-lg font-semibold text-gray-900">Ocupación real, tendencia y previsión</h3>
+            <ForecastChart data={buildChartData(state.data)} />
+          </div>
 
-          <dd className="text-4xl font-extrabold text-gray-600 md:text-5xl">86</dd>
-        </div>
+          <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
+            <div className="rounded-lg bg-white p-4 shadow-sm lg:col-span-2">
+              <h3 className="mb-2 text-lg font-semibold text-gray-900">Estacionalidad</h3>
+              <SeasonalityChart indices={state.data.model.seasonalIndices} />
+            </div>
+            <div className="rounded-lg bg-white p-4 text-sm text-gray-600 shadow-sm">
+              <h3 className="mb-2 text-lg font-semibold text-gray-900">Cómo se calcula</h3>
+              <p>
+                Tendencia lineal más un índice por mes, ajustados por mínimos cuadrados sobre {state.data.historyFrom} a{' '}
+                {state.data.historyTo}.
+              </p>
+              <p className="mt-2">
+                La ocupación cambia {state.data.model.slope >= 0 ? '+' : '−'}
+                {Math.abs(state.data.model.slope * 100).toFixed(2)} pp por mes (base {formatRate(state.data.model.intercept)}).
+              </p>
+              <p className="mt-2">
+                Precio: +15 % sobre 85 %, +8 % entre 70 % y 85 %, −10 % bajo 40 %. Inventario objetivo: 80 % de ocupación.
+                Las sugerencias no se aplican solas.
+              </p>
+            </div>
+          </div>
 
-        <div className="flex flex-col rounded-lg bg-gray-50 px-4 py-8 text-center">
-          <dt className="order-last text-lg font-medium text-gray-500">Downloads</dt>
-
-          <dd className="text-4xl font-extrabold text-gray-600 md:text-5xl">86k</dd>
-        </div>
-      </dl>
-    </div>
-  )
+          <div className="rounded-lg bg-white p-4 shadow-sm">
+            <h3 className="mb-2 text-lg font-semibold text-gray-900">Precio e inventario sugeridos</h3>
+            <ForecastTable forecast={state.data.forecast} averagePricePerNight={state.data.averagePricePerNight} />
+          </div>
+        </>
+      )}
+    </section>
+  );
 }

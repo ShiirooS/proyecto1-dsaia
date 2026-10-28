@@ -3,6 +3,8 @@ package app.mnhotel.hotel_reservation_system_backend.configuration;
 import java.time.Clock;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.YearMonth;
+import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Random;
@@ -52,6 +54,10 @@ public class DevDataSeeder implements CommandLineRunner {
 	private static final String IMG_DOBLE = "https://img.freepik.com/foto-gratis/suite-dormitorio-moderno-clasico-lujo-hotel_105762-1787.jpg";
 	private static final String IMG_SUITE = "https://img.freepik.com/free-photo/3d-rendering-beautiful-luxury-bedroom-suite-hotel-with-tv_105762-2063.jpg";
 
+	// HU-03: ocupación objetivo del histórico, de enero a diciembre, y tendencia de +0.5 pp por mes
+	static final double[] SEASONAL_OCCUPANCY = { 0.55, 0.50, 0.60, 0.65, 0.45, 0.55, 0.80, 0.85, 0.45, 0.40, 0.55, 0.80 };
+	static final double MONTHLY_TREND = 0.005;
+
 	private final UserRepository userRepository;
 	private final HotelRepository hotelRepository;
 	private final RoomRepository roomRepository;
@@ -75,8 +81,9 @@ public class DevDataSeeder implements CommandLineRunner {
 		}
 
 		List<Room> rooms = seedCatalog();
-		List<Reservation> demoReservations = seedDemoReservations(rooms, demo);
-		seedUpcomingReservations(rooms, syntheticGuests, demoReservations);
+		List<Reservation> seeded = new ArrayList<>(seedDemoReservations(rooms, demo));
+		seeded.addAll(seedHistory(rooms, syntheticGuests, seeded));
+		seedUpcomingReservations(rooms, syntheticGuests, seeded);
 		seedSavedCard(demo);
 		log.info("Datos semilla cargados (usuarios {} y {}, {} habitaciones)", ADMIN_USERNAME, GUEST_USERNAME, rooms.size());
 	}
@@ -145,6 +152,44 @@ public class DevDataSeeder implements CommandLineRunner {
 			}
 		}
 		reservationRepository.saveAll(reservations);
+	}
+
+	/**
+	 * HU-03: 24 meses completos de histórico para la previsión de demanda. Ocupación objetivo por mes calendario
+	 * (picos en julio, agosto y diciembre) más 0.5 pp de tendencia mensual, con estancias de 2 a 5 noches
+	 * separadas por huecos aleatorios cuya media lleva cada mes a su objetivo.
+	 */
+	private List<Reservation> seedHistory(List<Room> rooms, List<User> guests, List<Reservation> alreadySeeded) {
+		Random random = new Random(42);
+		YearMonth firstMonth = YearMonth.now(clock).minusMonths(24);
+		LocalDate historyEnd = YearMonth.now(clock).atDay(1);
+		List<Reservation> history = new ArrayList<>();
+		for (Room room : rooms) {
+			LocalDate cursor = firstMonth.atDay(1).plusDays(random.nextInt(3));
+			while (cursor.isBefore(historyEnd)) {
+				YearMonth month = YearMonth.from(cursor);
+				long t = ChronoUnit.MONTHS.between(firstMonth, month) + 1;
+				double target = SEASONAL_OCCUPANCY[month.getMonthValue() - 1] + MONTHLY_TREND * (t - 12);
+				int nights = 2 + random.nextInt(4);
+				// Hueco medio tal que noches / (noches + hueco) ≈ ocupación objetivo
+				long gap = Math.round(nights * (1 - target) / target * 2 * random.nextDouble());
+				LocalDate checkOut = cursor.plusDays(nights);
+				if (isFree(alreadySeeded, room, cursor, checkOut)) {
+					history.add(Reservation.builder()
+							.room(room)
+							.user(guests.get(random.nextInt(guests.size())))
+							.startDate(cursor)
+							.endDate(checkOut)
+							.guests(1)
+							.totalAmount(nights * room.getPricePerNight())
+							.status(ReservationStatus.CONFIRMED)
+							.createdAt(cursor.minusDays(15).atTime(10, 0))
+							.build());
+				}
+				cursor = checkOut.plusDays(gap);
+			}
+		}
+		return reservationRepository.saveAll(history);
 	}
 
 	private static boolean isFree(List<Reservation> seeded, Room room, LocalDate checkIn, LocalDate checkOut) {

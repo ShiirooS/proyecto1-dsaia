@@ -4,7 +4,7 @@ Actualizado: 2026-10-28.
 
 ## Desarrollo
 1. **HU-05**: hecha; falta mergear el PR y cerrar el issue #6. Ver [estado/HU-05-estado.md](estado/HU-05-estado.md).
-2. **HU-03**: terminar analítica (DTO, servicio, controlador, seed de 24 meses, frontend con recharts, issue #4). Ver [estado/HU-03-estado.md](estado/HU-03-estado.md).
+2. **HU-03**: hecha; falta mergear el PR (después del de HU-05) y cerrar el issue #4. Ver [estado/HU-03-estado.md](estado/HU-03-estado.md).
 3. **Deuda menor de HU-01**: lock failure → 409/503, unique constraint en `payment_method`, `ReservationConcurrencyTest` (`refund` en el gateway quedó hecho en HU-05).
 
 ## Entorno local
