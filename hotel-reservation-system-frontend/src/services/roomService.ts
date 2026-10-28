@@ -1,3 +1,4 @@
+import { toPathId } from './pathId';
 import api from './axiosConfig'; // Usa la instancia configurada
 
 export interface RoomDTO {
@@ -29,15 +30,15 @@ export async function createRoom(data: Partial<RoomDTO>): Promise<CreateRoomResp
 }
 
 export async function updateRoom(id: number, data: Partial<RoomDTO>): Promise<CreateRoomResponse> {
-  const response = await api.put(`/api/room/update-room/${id}`, data);
+  const response = await api.put(`/api/room/update-room/${toPathId(id)}`, data);
   return response.data as CreateRoomResponse;
 }
 
 export async function deleteRoom(id: number): Promise<void> {
-  await api.delete(`/api/room/delete-room/${id}`);
+  await api.delete(`/api/room/delete-room/${toPathId(id)}`);
 }
 
 export async function getRoomById(id: number): Promise<RoomDTO> {
-  const response = await api.get(`/api/room/get-room/${id}`);
+  const response = await api.get(`/api/room/get-room/${toPathId(id)}`);
   return response.data as RoomDTO;
 }
