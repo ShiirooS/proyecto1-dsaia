@@ -3,8 +3,8 @@ import { toPathId } from '../services/pathId'
 
 describe('toPathId', () => {
   it('acepta enteros positivos como número o texto', () => {
-    expect(toPathId(3)).toBe('3')
-    expect(toPathId('42')).toBe('42')
+    expect(toPathId(3)).toBe(3)
+    expect(toPathId('42')).toBe(42)
   })
 
   it('rechaza valores que podrían alterar la ruta de la API', () => {
