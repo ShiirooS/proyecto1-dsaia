@@ -14,12 +14,15 @@ import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
 import app.mnhotel.hotel_reservation_system_backend.entity.Hotel;
+import app.mnhotel.hotel_reservation_system_backend.entity.PaymentMethod;
 import app.mnhotel.hotel_reservation_system_backend.entity.Reservation;
 import app.mnhotel.hotel_reservation_system_backend.entity.Room;
 import app.mnhotel.hotel_reservation_system_backend.entity.User;
+import app.mnhotel.hotel_reservation_system_backend.enums.CardBrand;
 import app.mnhotel.hotel_reservation_system_backend.enums.ReservationStatus;
 import app.mnhotel.hotel_reservation_system_backend.enums.RoleType;
 import app.mnhotel.hotel_reservation_system_backend.repository.HotelRepository;
+import app.mnhotel.hotel_reservation_system_backend.repository.PaymentMethodRepository;
 import app.mnhotel.hotel_reservation_system_backend.repository.ReservationRepository;
 import app.mnhotel.hotel_reservation_system_backend.repository.RoomRepository;
 import app.mnhotel.hotel_reservation_system_backend.repository.UserRepository;
@@ -48,6 +51,7 @@ public class DevDataSeeder implements CommandLineRunner {
 	private final HotelRepository hotelRepository;
 	private final RoomRepository roomRepository;
 	private final ReservationRepository reservationRepository;
+	private final PaymentMethodRepository paymentMethodRepository;
 	private final PasswordEncoder passwordEncoder;
 	private final Clock clock;
 
@@ -58,7 +62,7 @@ public class DevDataSeeder implements CommandLineRunner {
 			return;
 		}
 		createUser(ADMIN_USERNAME, "Admin12345", "Administrador Hotel MN", RoleType.ADMIN);
-		createUser(GUEST_USERNAME, "Demo12345", "Huésped Demo", RoleType.USER);
+		User demo = createUser(GUEST_USERNAME, "Demo12345", "Huésped Demo", RoleType.USER);
 		List<User> syntheticGuests = new ArrayList<>();
 		for (int i = 1; i <= 5; i++) {
 			syntheticGuests.add(createUser("cliente" + i + "@correo.com", "Cliente1234", "Cliente " + i, RoleType.USER));
@@ -66,6 +70,7 @@ public class DevDataSeeder implements CommandLineRunner {
 
 		List<Room> rooms = seedCatalog();
 		seedUpcomingReservations(rooms, syntheticGuests);
+		seedSavedCard(demo);
 		log.info("Datos semilla cargados (usuarios {} y {}, {} habitaciones)", ADMIN_USERNAME, GUEST_USERNAME, rooms.size());
 	}
 
@@ -128,5 +133,14 @@ public class DevDataSeeder implements CommandLineRunner {
 			}
 		}
 		reservationRepository.saveAll(reservations);
+	}
+
+	/**
+	 * HU-01: VISA ••••4242 predeterminada para el usuario demo (solo token simulado y datos no sensibles).
+	 */
+	private void seedSavedCard(User demo) {
+		paymentMethodRepository.save(PaymentMethod.builder().user(demo).token("tok_demo0000000000000000visa")
+				.brand(CardBrand.VISA).last4("4242").expMonth(12).expYear(LocalDate.now(clock).getYear() + 3)
+				.holderName("HUESPED DEMO").isDefault(true).createdAt(LocalDateTime.now(clock)).build());
 	}
 }

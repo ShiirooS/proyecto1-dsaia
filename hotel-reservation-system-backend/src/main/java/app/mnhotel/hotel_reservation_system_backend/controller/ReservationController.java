@@ -1,5 +1,10 @@
 package app.mnhotel.hotel_reservation_system_backend.controller;
 
+import app.mnhotel.hotel_reservation_system_backend.service.BookingService;
+import app.mnhotel.hotel_reservation_system_backend.request.BookingRequest;
+import app.mnhotel.hotel_reservation_system_backend.dto.MyReservationDTO;
+import jakarta.validation.Valid;
+import java.net.URI;
 import app.mnhotel.hotel_reservation_system_backend.dto.ReservationDTO;
 import app.mnhotel.hotel_reservation_system_backend.exception.BusinessException;
 import app.mnhotel.hotel_reservation_system_backend.response.ApiResponse;
@@ -17,6 +22,9 @@ public class ReservationController {
 
     @Autowired
     private ReservationService reservationService;
+
+    @Autowired
+    private BookingService bookingService;
 
     @PostMapping("/registration-reservation")
     public ResponseEntity<ApiResponse> createReservation(@RequestBody ReservationDTO reservationRequest){
@@ -94,4 +102,17 @@ public class ReservationController {
     }
 
 
+
+    // HU-01: reservar y pagar en un paso (tarjeta guardada sin CVV o tarjeta nueva con opción de guardarla).
+    @PostMapping("/book")
+    public ResponseEntity<MyReservationDTO> book(@Valid @RequestBody BookingRequest request) {
+        MyReservationDTO created = bookingService.book(request);
+        return ResponseEntity.created(URI.create("/api/reservation/my-reservations/" + created.getId())).body(created);
+    }
+
+    // HU-01: detalle de una reserva propia (ajena o inexistente: 404).
+    @GetMapping("/my-reservations/{id}")
+    public ResponseEntity<MyReservationDTO> findMyReservation(@PathVariable Long id) {
+        return ResponseEntity.ok(bookingService.getMyReservation(id));
+    }
 }
