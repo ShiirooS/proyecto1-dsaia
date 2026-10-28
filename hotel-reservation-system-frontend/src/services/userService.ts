@@ -1,3 +1,4 @@
+import { toPathId } from './pathId';
 import api from './axiosConfig'; // Usa la instancia configurada
 
 export interface UserDTO {
@@ -19,7 +20,7 @@ export async function fetchUsers(): Promise<UserDTO[]> {
 }
 
 export async function getUserById(id: number): Promise<UserDTO> {
-  const response = await api.get(`/api/user/get-user/${id}`);
+  const response = await api.get(`/api/user/get-user/${toPathId(id)}`);
   return response.data as UserDTO;
 }
 
@@ -29,12 +30,12 @@ export async function createUser(data: Partial<UserDTO>): Promise<CreateUserResp
 }
 
 export async function updateUser(id: number, data: Partial<UserDTO>): Promise<CreateUserResponse> {
-  const response = await api.put(`/api/user/update-user/${id}`, data);
+  const response = await api.put(`/api/user/update-user/${toPathId(id)}`, data);
   return response.data as CreateUserResponse;
 }
 
 export async function deleteUser(id: number): Promise<void> {
-  await api.delete(`/api/user/delete-user/${id}`);
+  await api.delete(`/api/user/delete-user/${toPathId(id)}`);
 }
 
 export async function getCurrentUser(): Promise<UserDTO> {

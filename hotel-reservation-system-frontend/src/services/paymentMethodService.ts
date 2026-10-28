@@ -1,4 +1,5 @@
 import api from './axiosConfig';
+import { toPathId } from './pathId';
 
 export type CardBrand = 'VISA' | 'MASTERCARD' | 'AMEX';
 
@@ -33,10 +34,10 @@ export async function createPaymentMethod(card: CardInput, makeDefault: boolean)
 }
 
 export async function setDefaultPaymentMethod(id: number): Promise<PaymentMethod> {
-  const response = await api.put(`/api/payment-method/set-default/${id}`);
+  const response = await api.put(`/api/payment-method/set-default/${toPathId(id)}`);
   return response.data as PaymentMethod;
 }
 
 export async function deletePaymentMethod(id: number): Promise<void> {
-  await api.delete(`/api/payment-method/delete-payment-method/${id}`);
+  await api.delete(`/api/payment-method/delete-payment-method/${toPathId(id)}`);
 }

@@ -1,4 +1,5 @@
 import api from './axiosConfig';
+import { toPathId } from './pathId';
 import type { CardBrand, CardInput } from './paymentMethodService';
 import type { IsoDate } from './roomService';
 
@@ -52,6 +53,6 @@ export async function bookReservation(request: BookRequest): Promise<MyReservati
 }
 
 export async function getMyReservation(id: number | string): Promise<MyReservation> {
-  const response = await api.get(`/api/reservation/my-reservations/${id}`);
+  const response = await api.get(`/api/reservation/my-reservations/${toPathId(id)}`);
   return response.data as MyReservation;
 }
