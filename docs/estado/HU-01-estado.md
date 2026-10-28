@@ -24,6 +24,6 @@
 ## Pendiente
 - `PessimisticLockingFailureException` → 409/503.
 - Unique constraint en `payment_method`.
-- `refund` en el gateway (lo necesita HU-05).
+- (`refund` en el gateway: hecho en HU-05.)
 - `ReservationConcurrencyTest`.
 - `savedPaymentMethodId` siempre presente (null).
