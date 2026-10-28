@@ -1,0 +1,259 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<title>Documentación del sistema — Hotel Reservation System</title>
+<style>
+  @page { size: A4; margin: 18mm 16mm; }
+  * { box-sizing: border-box; }
+  body { font-family: "Segoe UI", Arial, sans-serif; font-size: 10.5pt; line-height: 1.5; color: #1b1f24; margin: 0; }
+  h1 { font-size: 26pt; margin: 0 0 4px; color: #0b3a6e; }
+  h2 { font-size: 16pt; color: #0b3a6e; border-bottom: 2px solid #0b3a6e; padding-bottom: 3px; margin-top: 26px; break-after: avoid; }
+  h3 { font-size: 12pt; color: #14538f; margin: 16px 0 4px; break-after: avoid; }
+  p { margin: 5px 0; }
+  code { font-family: Consolas, monospace; font-size: 9.2pt; background: #eef2f7; padding: 0 3px; border-radius: 3px; }
+  table { border-collapse: collapse; width: 100%; margin: 8px 0; font-size: 9.4pt; break-inside: avoid; }
+  th, td { border: 1px solid #c9d2dc; padding: 4px 7px; text-align: left; vertical-align: top; }
+  th { background: #e6edf5; }
+  ul { margin: 4px 0 4px 18px; padding: 0; }
+  .cover { text-align: center; padding-top: 90px; page-break-after: always; }
+  .cover .sub { font-size: 13pt; color: #444; margin-top: 8px; }
+  .cover .meta { margin-top: 40px; color: #555; font-size: 10pt; }
+  .toc li { margin: 2px 0; }
+  .flow { display: flex; flex-wrap: wrap; align-items: stretch; gap: 6px; margin: 8px 0 12px; break-inside: avoid; }
+  .step { flex: 1 1 22%; min-width: 120px; border: 1.5px solid #14538f; border-radius: 6px; padding: 6px 8px; background: #f3f8fd; font-size: 9pt; position: relative; }
+  .step b { display: block; color: #0b3a6e; margin-bottom: 2px; }
+  .step.err { border-color: #b3261e; background: #fdf1f0; }
+  .step.err b { color: #b3261e; }
+  .step.ok { border-color: #1e7a3c; background: #eefaf1; }
+  .step.ok b { color: #1e7a3c; }
+  .arch { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; margin: 10px 0; break-inside: avoid; }
+  .box { border: 1.5px solid #14538f; border-radius: 8px; padding: 8px; background: #f7fafd; font-size: 9pt; }
+  .box h4 { margin: 0 0 4px; font-size: 10pt; color: #0b3a6e; }
+  .tag { display: inline-block; padding: 1px 8px; border-radius: 10px; font-size: 8.5pt; font-weight: 600; color: #fff; }
+  .done { background: #1e7a3c; } .part { background: #b8860b; } .todo { background: #8a4b00; }
+  .note { border-left: 4px solid #b8860b; background: #fff8e6; padding: 6px 10px; margin: 8px 0; break-inside: avoid; }
+  .hu { break-before: page; }
+</style>
+</head>
+<body>
+
+<section class="cover">
+  <h1>Hotel Reservation System</h1>
+  <div class="sub">Documentación completa del sistema, su flujo y los cambios por historia de usuario</div>
+  <div class="sub">Proyecto #1 — Desarrollo asistido por IA · Tópicos Especiales II</div>
+  <div class="meta">Repositorio: ShiirooS/proyecto1-dsaia (base: natanael-lima/hotel-reservation-system, rama <code>developer</code>)<br>
+  Estado documentado al 28 de octubre de 2026</div>
+</section>
+
+<h2 style="margin-top:0">Contenido</h2>
+<ol class="toc">
+  <li>Visión general y alcance</li>
+  <li>Arquitectura</li>
+  <li>Modelo de datos</li>
+  <li>Seguridad y roles</li>
+  <li>Flujos del sistema</li>
+  <li>API: resumen de endpoints</li>
+  <li>Cambios implementados por historia de usuario (HU-00 a HU-05)</li>
+  <li>Calidad: pruebas, CI y revisiones</li>
+  <li>Cómo ejecutarlo</li>
+  <li>Estado actual y pendientes</li>
+</ol>
+
+<h2>1. Visión general y alcance</h2>
+<p>Sistema web de reservas de hotel. Un visitante explora hoteles y habitaciones; un usuario registrado reserva con una tarjeta (nueva o guardada), consulta y cancela sus reservas; un administrador gestiona el inventario y consulta la previsión de demanda. El proyecto parte del repositorio de código abierto de natanael-lima y se amplía con tres historias obligatorias del curso y dos extra elegidas por el equipo.</p>
+<table>
+  <tr><th>HU</th><th>Título</th><th>Tipo</th><th>Estado</th></tr>
+  <tr><td>HU-00</td><td>Base técnica (build, perfiles, CI, errores)</td><td>Habilitadora</td><td><span class="tag done">Mergeada</span></td></tr>
+  <tr><td>HU-01</td><td>Reservar con datos de pago guardados</td><td>Obligatoria</td><td><span class="tag done">Mergeada</span></td></tr>
+  <tr><td>HU-02</td><td>Calendario dinámico de disponibilidad</td><td>Obligatoria</td><td><span class="tag done">Mergeada</span></td></tr>
+  <tr><td>HU-03</td><td>Gráficos de previsión de demanda (admin)</td><td>Obligatoria</td><td><span class="tag part">Parcial</span></td></tr>
+  <tr><td>HU-04</td><td>Control de acceso por roles</td><td>Extra 1</td><td><span class="tag done">Mergeada</span></td></tr>
+  <tr><td>HU-05</td><td>Mis reservas y cancelación</td><td>Extra 2</td><td><span class="tag todo">Pendiente</span></td></tr>
+</table>
+
+<h2>2. Arquitectura</h2>
+<div class="arch">
+  <div class="box"><h4>Frontend (SPA)</h4>React 18 + Vite 5 + TypeScript + Tailwind + React Router 6. Un único cliente HTTP (axios, <code>services/axiosConfig.ts</code>) con interceptor 401/403. Vitest + Testing Library.</div>
+  <div class="box"><h4>Backend (API REST)</h4>Spring Boot 3.3.2, Java 17. Capas: <code>controller</code> → <code>service</code>/<code>service/imp</code> → <code>repository</code> → <code>entity</code>. Lógica pura en <code>domain/</code>. JWT stateless.</div>
+  <div class="box"><h4>Datos</h4>H2 en modo PostgreSQL para dev/test (con datos de ejemplo). PostgreSQL real con perfil <code>postgres</code> y <code>docker-compose.yml</code>.</div>
+</div>
+<p><b>Decisiones de arquitectura (ADR):</b> JWT stateless (001); H2 en dev/test y PostgreSQL real (002); pasarela de pago simulada con tokenización (003); algoritmo de previsión de demanda (004); disponibilidad derivada de las reservas (005); reloj inyectable y zona horaria de check-in (006); base <code>developer</code> en lugar de <code>main</code> (007).</p>
+<p><b>Reglas transversales:</b> errores con un único sobre <code>ApiResponse{message, code, errors}</code>; dinero en enteros (USD); <code>Clock</code> inyectable (zona America/Panama, check-in 15:00, máximo 30 noches); un recurso ajeno responde 404, no 403.</p>
+
+<h2>3. Modelo de datos</h2>
+<table>
+  <tr><th>Entidad</th><th>Campos principales</th><th>Notas</th></tr>
+  <tr><td>User</td><td>username (email), password (BCrypt), fullName, role (USER/ADMIN), createdAt</td><td>Rol guardado como texto (<code>@Enumerated(STRING)</code>).</td></tr>
+  <tr><td>Hotel</td><td>name, location, description, rating, image, province</td><td>Catálogo público.</td></tr>
+  <tr><td>Room</td><td>hotel, roomNumber, type, pricePerNight, capacity, amenities, availbility (activa)</td><td>Se bloquea con lock pesimista al reservar.</td></tr>
+  <tr><td>Reservation</td><td>room, user, startDate, endDate (LocalDate), guests, totalAmount, status (CONFIRMED/CANCELLED), createdAt, cancelledAt</td><td>La noche d está ocupada si start ≤ d &lt; end.</td></tr>
+  <tr><td>Payment</td><td>reservation, amount, refundedAmount, status (COMPLETED/REFUNDED…), cardBrand, cardLast4, transactionId, paymentDate</td><td>Sin PAN ni CVV.</td></tr>
+  <tr><td>PaymentMethod</td><td>user, token, brand, last4, expMonth, expYear, holderName, isDefault, createdAt</td><td>Solo referencia tokenizada.</td></tr>
+  <tr><td>Review</td><td>user, hotel, rating, comment</td><td>Solo autenticados escriben.</td></tr>
+</table>
+
+<h2>4. Seguridad y roles</h2>
+<ul>
+  <li><b>Autenticación:</b> <code>POST /auth/login</code> devuelve un JWT (claim <code>uid</code>). El secreto se lee de <code>app.jwt.secret</code> (Base64); fuera de dev/test no tiene valor por defecto.</li>
+  <li><b>Autorización:</b> <code>SecurityConfig</code> declara cada ruta pública de forma explícita; el resto exige autoridad <code>USER</code> o <code>ADMIN</code> (<code>hasAuthority</code>, sin prefijo ROLE_).</li>
+  <li><b>Propiedad:</b> tarjetas y reservas se filtran por el usuario del token; un recurso ajeno responde 404.</li>
+  <li><b>Datos sensibles:</b> el número completo y el CVV nunca se persisten ni aparecen en logs (probado con <code>SensitiveDataTest</code>).</li>
+  <li><b>Anónimo en ruta protegida:</b> 401; autenticado sin permiso: 403.</li>
+</ul>
+<table>
+  <tr><th>Recurso</th><th>Público</th><th>USER</th><th>ADMIN</th></tr>
+  <tr><td>Catálogo: hoteles, habitaciones, disponibilidad, reseñas (GET)</td><td>✔</td><td>✔</td><td>✔</td></tr>
+  <tr><td>Alta/edición/baja de hoteles y habitaciones</td><td>✘</td><td>✘</td><td>✔</td></tr>
+  <tr><td>Reservar, tarjetas propias, mis reservas, cancelar</td><td>✘</td><td>✔ (dueño)</td><td>✔ (dueño)</td></tr>
+  <tr><td>Usuarios, pagos y reservas globales (administración)</td><td>✘</td><td>✘</td><td>✔</td></tr>
+  <tr><td>Previsión de demanda</td><td>✘</td><td>✘</td><td>✔</td></tr>
+</table>
+
+<h2>5. Flujos del sistema</h2>
+
+<h3>5.1 Acceso (login y roles)</h3>
+<div class="flow">
+  <div class="step"><b>1. Login</b>El usuario envía email y contraseña a <code>/auth/login</code>.</div>
+  <div class="step"><b>2. Token</b>El backend valida con BCrypt y devuelve el JWT con <code>uid</code>.</div>
+  <div class="step"><b>3. Sesión</b><code>AuthContext</code> guarda token, usuario y rol (<code>/api/user/current</code>).</div>
+  <div class="step"><b>4. Rutas</b><code>ProtectedRoute</code> exige rol; el panel admin solo entra ADMIN.</div>
+  <div class="step err"><b>Token inválido</b>El interceptor recibe 401/403 y cierra la sesión.</div>
+</div>
+
+<h3>5.2 Consulta de disponibilidad (calendario)</h3>
+<div class="flow">
+  <div class="step"><b>1. Detalle</b>El visitante abre una habitación.</div>
+  <div class="step"><b>2. Consulta</b>El hook <code>useAvailability</code> pide <code>get-availability/{id}?from&amp;to</code> de los dos meses visibles.</div>
+  <div class="step"><b>3. Cálculo</b><code>OccupancyCalculator</code> marca como ocupadas las noches de reservas CONFIRMED.</div>
+  <div class="step"><b>4. Selección</b>El calendario pinta libres/ocupados y valida el rango (máx. 30 noches, sin cruzar ocupadas).</div>
+  <div class="step ok"><b>5. Book now</b>Con rango válido se habilita la reserva.</div>
+</div>
+
+<h3>5.3 Reservar con tarjeta guardada o nueva</h3>
+<div class="flow">
+  <div class="step"><b>1. Pago</b>El modal muestra la tarjeta predeterminada (un clic) o un formulario de tarjeta nueva con «guardar».</div>
+  <div class="step"><b>2. Validación</b><code>POST /api/reservation/book</code>: formato (400), fuente de pago única, Luhn/marca/CVV/vencimiento (422), fechas y huéspedes (422).</div>
+  <div class="step"><b>3. Bloqueo</b>Se bloquea la fila de la habitación y se comprueba el solape.</div>
+  <div class="step err"><b>Conflicto</b>Fechas ya reservadas → 409, no se cobra.</div>
+  <div class="step"><b>4. Cobro</b>Pasarela simulada (<code>tok_</code>, <code>txn_</code>). La tarjeta terminada en 0002 se rechaza → 402 y no se guarda nada.</div>
+  <div class="step ok"><b>5. Confirmación</b>Se crean Reservation + Payment en una transacción; si pidió guardar, se guarda el token. Respuesta 201 con <code>Location</code>.</div>
+</div>
+
+<h3>5.4 Mis reservas y cancelación (HU-05, pendiente)</h3>
+<div class="flow">
+  <div class="step"><b>1. Listado</b><code>GET /api/reservation/my-reservations</code> devuelve solo las del usuario.</div>
+  <div class="step"><b>2. Cancelar</b><code>PUT /api/reservation/cancel-reservation/{id}</code>.</div>
+  <div class="step"><b>3. Política</b><code>CancellationPolicy</code>: con 48 h o más antes del check-in, reembolso total; si no, sin reembolso.</div>
+  <div class="step ok"><b>4. Resultado</b>Reserva CANCELLED, noches liberadas y Payment REFUNDED cuando corresponde.</div>
+</div>
+
+<h3>5.5 Previsión de demanda (HU-03, parcial)</h3>
+<div class="flow">
+  <div class="step"><b>1. Histórico</b>Ocupación mensual de 24 meses derivada de las reservas.</div>
+  <div class="step"><b>2. Modelo</b><code>DemandForecastCalculator</code>: regresión lineal (OLS) con estacionalidad mensual (ADR-004).</div>
+  <div class="step"><b>3. Reglas</b><code>PricingRules</code>: ajuste de precio sugerido y acción de inventario.</div>
+  <div class="step"><b>4. Gráficos</b>El panel admin muestra previsión, estacionalidad y tabla (recharts) — por completar.</div>
+</div>
+
+<h2>6. API: resumen de endpoints</h2>
+<table>
+  <tr><th>Método y ruta</th><th>Acceso</th><th>HU</th></tr>
+  <tr><td><code>POST /auth/login</code>, <code>POST /auth/registration-user</code></td><td>Público</td><td>HU-04</td></tr>
+  <tr><td><code>GET /api/user/current</code></td><td>Autenticado</td><td>HU-04</td></tr>
+  <tr><td><code>GET /api/hotel/get-all</code>, <code>get-hotel/{id}</code></td><td>Público</td><td>base</td></tr>
+  <tr><td><code>GET /api/room/get-all?activeOnly</code>, <code>get-room/{id}</code></td><td>Público</td><td>HU-02</td></tr>
+  <tr><td><code>GET /api/room/get-availability/{id}?from&amp;to</code></td><td>Público</td><td>HU-02</td></tr>
+  <tr><td><code>GET /api/payment-method/get-all</code>, <code>POST registration-payment-method</code>, <code>PUT set-default/{id}</code>, <code>DELETE delete-payment-method/{id}</code></td><td>Dueño</td><td>HU-01</td></tr>
+  <tr><td><code>POST /api/reservation/book</code></td><td>Autenticado</td><td>HU-01</td></tr>
+  <tr><td><code>GET /api/reservation/my-reservations/{id}</code></td><td>Dueño</td><td>HU-01</td></tr>
+  <tr><td><code>GET /api/reservation/my-reservations</code>, <code>PUT cancel-reservation/{id}</code></td><td>Dueño</td><td>HU-05 (pendiente)</td></tr>
+  <tr><td><code>GET /api/analytics/demand-forecast?horizon&amp;hotelId</code></td><td>ADMIN</td><td>HU-03 (pendiente)</td></tr>
+  <tr><td>CRUD de hoteles, habitaciones, usuarios, pagos y reservas</td><td>ADMIN</td><td>HU-04</td></tr>
+</table>
+<p><b>Códigos de error frecuentes:</b> 400 <code>VALIDATION_ERROR</code>; 401 sin sesión; 402 pago rechazado; 404 recurso inexistente o ajeno; 409 <code>ROOM_NOT_AVAILABLE</code>; 422 reglas de negocio (<code>CARD_INVALID</code>, <code>CARD_EXPIRED</code>, <code>MAX_NIGHTS_EXCEEDED</code>, <code>CHECKIN_IN_PAST</code>, <code>GUESTS_EXCEED_CAPACITY</code>…).</p>
+
+<h2 class="hu-start">7. Cambios implementados por historia de usuario</h2>
+
+<h3>HU-00 — Base técnica <span class="tag done">Mergeada · PR #8</span></h3>
+<ul>
+  <li>Se eliminó <code>bin/</code> versionado y se corrigieron 37 errores de TypeScript para que <code>tsc -b</code> compile.</li>
+  <li>Perfiles <code>dev</code> (H2), <code>test</code> y <code>postgres</code>, más <code>docker-compose.yml</code>.</li>
+  <li><code>User.role</code> pasó de ordinal a texto.</li>
+  <li>Errores unificados con <code>ApiResponse</code>, <code>BusinessException</code>, <code>ConflictException</code>, <code>ResourceNotFoundException</code> y <code>GlobalExceptionHandler</code>.</li>
+  <li>CI en GitHub Actions (backend y frontend), Vitest configurado y <code>ExistingApiCharacterizationTest</code> que fija el comportamiento previo.</li>
+</ul>
+
+<h3>HU-01 — Reservar con datos de pago guardados <span class="tag done">Mergeada · PR #13</span></h3>
+<ul>
+  <li><b>Dominio:</b> <code>CardValidator</code> (Luhn, marca VISA/MASTERCARD/AMEX, CVV, vencimiento, <code>checkFormat</code>) y <code>CancellationPolicy</code>, ambos sin dependencias de Spring.</li>
+  <li><b>Modelo y servicios:</b> <code>PaymentMethod</code>, <code>PaymentMethodService</code>, <code>PaymentGateway</code> simulada y <code>BookingService.book</code>.</li>
+  <li><b>API:</b> <code>/api/payment-method/*</code> y <code>POST /api/reservation/book</code> (201 + Location).</li>
+  <li><b>Concurrencia:</b> bloqueo pesimista de la habitación (también en las reservas del admin) y aislamiento READ_COMMITTED.</li>
+  <li><b>Frontend:</b> <code>ConfirmBookingModal</code> como paso de pago, <code>CardForm</code>, <code>PaymentMethodSelector</code> y <code>PaymentMethodsPage</code> (<code>/payment-methods</code>).</li>
+  <li><b>Revisión:</b> el agente senior-architect-backend aprobó con cambios; se corrigió la fuga de PAN/CVV en el log DEBUG de Bean Validation.</li>
+  <li><b>Pruebas:</b> BookingTest (15), SensitiveDataTest (2), CardValidatorTest, CancellationPolicyTest; frontend 71 tests.</li>
+</ul>
+
+<h3>HU-02 — Calendario dinámico <span class="tag done">Mergeada · PR #11 y #12</span></h3>
+<ul>
+  <li>Disponibilidad derivada de las reservas CONFIRMED con <code>OccupancyCalculator</code> (noche ocupada si start ≤ d &lt; end).</li>
+  <li><code>Reservation</code> con <code>LocalDate</code> y <code>ReservationStatus</code>; solapes → 409/422 también en las reservas del admin.</li>
+  <li><code>GET /api/room/get-availability/{id}</code> y <code>get-all?activeOnly</code>; datos de ejemplo de 2 hoteles, 8 habitaciones y 60 días de reservas.</li>
+  <li><b>Frontend:</b> <code>components/calendar/*</code> (calendario propio de dos meses), <code>RoomDetailsPage</code> con precio por noches.</li>
+  <li><b>Fix #12:</b> un test intermitente del CI (<code>RoomDetailsPage</code>) se corrigió desmontando antes de resetear los mocks.</li>
+  <li><b>Pruebas:</b> RoomAvailabilityTest y 49 tests de frontend.</li>
+</ul>
+
+<h3>HU-03 — Previsión de demanda <span class="tag part">Parcial · sin PR</span></h3>
+<ul>
+  <li><b>Hecho:</b> <code>DemandForecastCalculator</code> (OLS con tendencia y estacionalidad mensual sobre 24 meses), <code>PricingRules</code> y <code>OccupancyCalculator.nightsPerMonth</code>, con pruebas en verde que usan los vectores del ADR-004.</li>
+  <li><b>Falta:</b> DTO, servicio y controlador (<code>GET /api/analytics/demand-forecast?horizon&amp;hotelId</code>), datos históricos de 24 meses y los gráficos con recharts.</li>
+</ul>
+
+<h3>HU-04 — Control de acceso por roles <span class="tag done">Mergeada · PR #9 y #10</span></h3>
+<ul>
+  <li><code>SecurityConfig</code> con la matriz de permisos; se eliminó el GET público global que exponía usuarios y pagos.</li>
+  <li>JWT con secreto configurable y claim <code>uid</code>; el filtro tolera tokens inválidos o caducados.</li>
+  <li><code>CurrentUserService</code>, <code>AdminBootstrap</code> y datos de ejemplo (admin@hotel.com y demo@hotel.com).</li>
+  <li><b>Revisión:</b> el agente rechazó la primera versión por 3 críticos (mass assignment de <code>id</code>, pagos accesibles a USER, toma de cuenta por renombrado); se corrigieron con tests.</li>
+  <li><b>Frontend:</b> <code>AuthContext</code>, <code>ProtectedRoute</code> por rol, <code>AdminLoginPage</code>, interceptor 401/403.</li>
+  <li><b>Fix #10 (SonarCloud S7044/S8476):</b> <code>toPathId</code> valida los ids antes de armar URLs.</li>
+</ul>
+
+<h3>HU-05 — Mis reservas y cancelación <span class="tag todo">Pendiente</span></h3>
+<ul>
+  <li>Reutilizará <code>BookingService.toMyReservation</code> y <code>CancellationPolicy</code>.</li>
+  <li>Falta: <code>GET /api/reservation/my-reservations</code>, <code>PUT /api/reservation/cancel-reservation/{id}</code> (reembolso con 48 h o más), la página <code>Bookings</code> real y sus tests.</li>
+</ul>
+
+<h2>8. Calidad: pruebas, CI y revisiones</h2>
+<table>
+  <tr><th>Mecanismo</th><th>Detalle</th></tr>
+  <tr><td>Pruebas backend</td><td>JUnit + MockMvc sobre H2: caracterización, acceso por roles, reservas, disponibilidad, datos sensibles y lógica de dominio (parametrizadas).</td></tr>
+  <tr><td>Pruebas frontend</td><td>Vitest + Testing Library: 71 tests (calendario, pagos, rutas protegidas, servicios).</td></tr>
+  <tr><td>CI</td><td>GitHub Actions: build y tests de backend y frontend en cada push y PR.</td></tr>
+  <tr><td>Calidad estática</td><td>SonarCloud Quality Gate en los PR.</td></tr>
+  <tr><td>Revisión</td><td>Un PR por HU, revisión (agentes especializados y revisión humana) y merge a <code>develop</code>. Los fixes van en ramas <code>fix/HU-XX-descripcion</code>.</td></tr>
+</table>
+
+<h2>9. Cómo ejecutarlo</h2>
+<ul>
+  <li><b>Backend (dev, H2):</b> <code>cd hotel-reservation-system-backend &amp;&amp; ./mvnw spring-boot:run</code> (puerto 3000). Usuarios de ejemplo: <code>admin@hotel.com / Admin12345</code>, <code>demo@hotel.com / Demo12345</code>.</li>
+  <li><b>Backend (PostgreSQL):</b> <code>docker compose up -d</code> y perfil <code>postgres</code> con <code>app.jwt.secret</code> definido.</li>
+  <li><b>Frontend:</b> <code>cd hotel-reservation-system-frontend &amp;&amp; npm ci &amp;&amp; npm run dev</code>.</li>
+  <li><b>Pruebas:</b> <code>./mvnw test</code> y <code>npx vitest run</code>.</li>
+</ul>
+
+<h2>10. Estado actual y pendientes</h2>
+<div class="note">HU-00, HU-01, HU-02 y HU-04 están mergeadas en <code>develop</code>. HU-03 está a medias y HU-05 sin empezar; este documento describe esas dos como diseño previsto y se actualizará al mergearlas.</div>
+<ul>
+  <li>HU-05 completa (backend, frontend, tests).</li>
+  <li>HU-03: servicio, controlador, histórico y gráficos.</li>
+  <li>Deuda menor de HU-01: lock failure → 409/503, unique constraint en <code>payment_method</code>, <code>refund</code> en el gateway, <code>ReservationConcurrencyTest</code>.</li>
+  <li>Evidencia final: bitácora de uso de IA, respuestas incorrectas, cambios rechazados y decisiones humanas.</li>
+</ul>
+<p>Documentos de detalle en <code>docs/</code>: <code>architecture/ARCHITECTURE.md</code>, <code>architecture/API-CONTRACT.md</code>, <code>architecture/adr/</code>, <code>user-stories/</code>, <code>estado/</code>, <code>reviews/</code>, <code>CONTEXTO.md</code> y <code>PENDINGS.md</code>.</p>
+
+</body>
+</html>
