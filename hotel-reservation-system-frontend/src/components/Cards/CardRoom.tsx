@@ -1,22 +1,16 @@
-import { useState } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 import Button from '../Buttons/Button'
-import ButtonSecondary from '../Buttons/ButtonSecondary';
 import { GrCapacity, GrLocation } from "react-icons/gr";
 import { MdEventAvailable } from "react-icons/md";
 import {  } from "react-icons/gr";
 import { RoomWithHotel } from '../Sliders/SliderRoomWithHotel';
-import ConfirmBookingModal from '../Modals/ConfirmBookingModal';
 
 type CardRoomProps = {
     room: RoomWithHotel
 }
 
 export default function CardProduct({ room }: CardRoomProps) {
-  const [isModalOpen, setIsModalOpen] = useState(false);
-
-  const openModal = () => setIsModalOpen(true);
-  const closeModal = () => setIsModalOpen(false);
+  const navigate = useNavigate();
 
   return (
     <article className="relative overflow-hidden rounded-lg border border-orange-200/10 shadow-sm group hover:shadow-xl transition-transform duration-300 ease-in-out bg-white">
@@ -57,19 +51,14 @@ export default function CardProduct({ room }: CardRoomProps) {
               <Button
                 content="Book now"
                 className="inline-block w-50 px-12 py-3 text-center"
-                onClick={openModal}
+                onClick={() => navigate(`/roomDetail/${room.id}`)}
               />
    
-            {/* Render the modal only if it's open */}
-            {isModalOpen && (
-              <ConfirmBookingModal isOpen={isModalOpen} closeModal={closeModal} />
-            )}
-            <Link to={`/roomDetail/${room.id}`} key={room.id}>
-              <ButtonSecondary
-                    content="More details"
-                    className="inline-block w-50 px-12 py-3 text-center" onClick={function (): void {
-                      throw new Error('Function not implemented.');
-                    } }              />
+            <Link
+              to={`/roomDetail/${room.id}`}
+              className="block rounded-lg bg-orange-200 px-12 py-3 text-center text-sm font-medium text-orange-600 transition hover:text-orange-500"
+            >
+              More details
             </Link>
           </div>
         </footer>

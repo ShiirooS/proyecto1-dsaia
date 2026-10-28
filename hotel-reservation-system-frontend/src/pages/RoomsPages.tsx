@@ -36,7 +36,7 @@ export default function Product() {
     async function loadRoomsAndHotels() {
       try {
         setLoading(true);
-        const rooms = await fetchRooms();
+        const rooms = await fetchRooms({ activeOnly: true });
         
         const roomsWithHotelsPromises = rooms.map(async (room) => {
           if (room.hotelId) {
