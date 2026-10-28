@@ -1,8 +1,10 @@
 import { Link } from 'react-router-dom'; // Importa Link
 import Button from './Button';
 import ButtonSecondary from './ButtonSecondary';
+import { useAuth } from '../context/AuthContext';
 
 export default function Header() {
+  const { user, isAuthenticated, isAdmin, logout } = useAuth();
   return (
     <header className="absolute top-0 left-0 right-0 z-10 bg-[rgba(255,255,255,0)]">
     <div className="mx-auto flex h-16 max-w-screen-xl items-center gap-8 px-4 sm:px-6 lg:px-8">
@@ -38,9 +40,23 @@ export default function Header() {
 
       <div className="flex items-center gap-4">
         <div className="sm:flex sm:gap-4">
-          <Button content='Login' className={''} />
+          {isAuthenticated && user ? (
+            <div className="flex items-center gap-4 text-sm text-gray-200">
+              <span>{user.fullName || user.username}</span>
+              {isAdmin && (
+                <Link to="/admin" className="transition hover:text-gray-300/75">Panel admin</Link>
+              )}
+              <button type="button" onClick={logout} className="transition hover:text-gray-300/75">
+                Cerrar sesión
+              </button>
+            </div>
+          ) : (
+            <>
+              <Button content='Iniciar sesión' className={''} to="/login" />
+              <ButtonSecondary content='Registrarse' className={'hidden sm:block'} to="/register" />
+            </>
+          )}
 
-          <ButtonSecondary content='Register' className={'hidden sm:block'}/>
         </div>
         
         <button

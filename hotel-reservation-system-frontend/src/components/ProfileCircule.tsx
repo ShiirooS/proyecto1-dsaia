@@ -1,7 +1,15 @@
 import { useState } from "react"
+import { useNavigate } from "react-router-dom"
+import { useAuth } from "../context/AuthContext"
 
 export default function ProfileCircule() {
     const [isOpen, setIsOpen] = useState(false)
+    const { logout } = useAuth()
+    const navigate = useNavigate()
+    const handleLogout = () => {
+      logout()
+      navigate("/login")
+    }
   return (
     <div className="relative inline-block text-left">
       <div className="flex items-center">
@@ -66,6 +74,14 @@ export default function ProfileCircule() {
               </svg>
               Change Password
             </a>
+            <button
+              type="button"
+              onClick={handleLogout}
+              className="flex w-full items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 hover:text-gray-900"
+              role="menuitem"
+            >
+              Cerrar sesión
+            </button>
           </div>
         </div>
       )}
