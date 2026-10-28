@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { fetchHotels, HotelDTO } from '../../../services/hotelService';
 import ButtonGroup from '../../Buttons/ButtonGroup';
 import HotelFormEdit from '../Forms/HotelFormEdit';

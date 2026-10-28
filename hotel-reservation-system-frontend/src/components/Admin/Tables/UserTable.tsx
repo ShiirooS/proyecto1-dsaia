@@ -1,8 +1,7 @@
-import React, { useEffect, useState } from 'react'
+import { useEffect, useState } from 'react'
 import ButtonGroup from '../../Buttons/ButtonGroup'
 import { fetchUsers, UserDTO } from '../../../services/userService';
 import UserFormEdit from '../Forms/UserFormEdit';
-import { FaCheck } from 'react-icons/fa';
 import ButtonStatusBadge from '../../Buttons/ButtonStatusBadge';
 
 // Función para formatear la fecha usando JavaScript nativo
@@ -78,14 +77,15 @@ export default function UserSection() {
               </td>
               <td className="px-6 py-4 whitespace-nowrap">{user.username}</td>
               <td className="px-6 py-4 whitespace-nowrap">{user.fullName}</td>
-              <td className="px-6 py-4 whitespace-nowrap">{formatDate(user.createdAt)}</td>
+              <td className="px-6 py-4 whitespace-nowrap">{user.createdAt ? formatDate(user.createdAt) : '—'}</td>
               <td className="px-6 py-4 whitespace-nowrap">
                     <ButtonStatusBadge status="Active" />
               </td>
               <td className="px-6 py-4 whitespace-nowrap">
-                <span className="inline-flex items-center px-2 py-1 bg-green-600 text-white rounded-lg border border-green-600">
-                  <FaCheck className="w-3 h-3 " />
-                </span>
+                <ButtonGroup
+                  onClick2={() => user.id && openEditModal(user.id)}
+                  onClick3={() => console.log('Button 3 clicked')}
+                />
               </td>
             </tr>
           ))}

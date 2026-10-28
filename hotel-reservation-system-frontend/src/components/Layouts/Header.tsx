@@ -24,7 +24,7 @@ export default function Header() {
   };
   const handleLogin = async (username: string, password: string) => {
     try {
-      const data = await login(username, password);
+      await login(username, password);
       setIsAuthenticated(true); // Actualiza el estado a autenticado
     } catch (error) {
       console.error('Login failed:', error);

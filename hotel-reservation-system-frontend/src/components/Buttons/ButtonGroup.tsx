@@ -1,4 +1,3 @@
-import React from 'react'
 import { CiEdit, CiTrash  } from "react-icons/ci";
 
 

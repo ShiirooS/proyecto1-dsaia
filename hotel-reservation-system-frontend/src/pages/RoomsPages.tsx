@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 
-import SideBarFilter from '../components/Sidebars/SidebarFilter'
+import SideBarFilter from '../components/Sidebars/SideBarFilter'
 import Header from '../components/Layouts/Header'
 import HeaderBanner from '../components/Layouts/HeaderBanner'
 import CardRoom from '../components/Cards/CardRoom'

@@ -1,4 +1,3 @@
-import React from 'react';
 import { FaEdit, FaPlus, FaTrashAlt, FaPowerOff } from 'react-icons/fa';
 
 export default function Settings() {

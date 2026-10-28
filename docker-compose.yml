@@ -1,0 +1,18 @@
+# Base de datos PostgreSQL para ejecutar el backend con el perfil "postgres"
+#   docker compose up -d
+#   SPRING_PROFILES_ACTIVE=postgres ./mvnw spring-boot:run
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: hotel-postgres
+    environment:
+      POSTGRES_DB: hotel-bd
+      POSTGRES_USER: root
+      POSTGRES_PASSWORD: root
+    ports:
+      - "5432:5432"
+    volumes:
+      - hotel-pgdata:/var/lib/postgresql/data
+
+volumes:
+  hotel-pgdata:
