@@ -39,7 +39,7 @@ export async function fetchRooms(opts?: { activeOnly?: boolean }): Promise<RoomD
 }
 
 export async function getAvailability(id: number | string, from: IsoDate, to: IsoDate): Promise<RoomAvailability> {
-  const response = await api.get(`/api/room/get-availability/${id}`, { params: { from, to } });
+  const response = await api.get(`/api/room/get-availability/${toPathId(id)}`, { params: { from, to } });
   return response.data as RoomAvailability;
 }
 
