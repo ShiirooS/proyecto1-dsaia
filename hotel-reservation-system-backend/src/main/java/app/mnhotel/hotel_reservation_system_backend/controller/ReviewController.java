@@ -30,6 +30,10 @@ public class ReviewController {
 
 	    @PostMapping("/registration-review")
 	    public ResponseEntity<ApiResponse> createReview(@RequestBody ReviewDTO reviewRequest) {
+	    	// HU-04: al crear, el id nunca se toma del body (con un id ajeno save() sobrescribía ese registro)
+	    	if (reviewRequest != null) {
+	    		reviewRequest.setId(null);
+	    	}
 	        if (reviewRequest == null) {
 	            return ResponseEntity.badRequest().body(new ApiResponse("Error: la solicitud está vacía"));
 	        }
