@@ -19,12 +19,14 @@ function App() {
         <Routes>
           <Route path="/" element={<Home />} />
           <Route path="/admin/login" element={<LoginAdmin />} />
-          <Route element={<ProtectedRoute />}>
+          <Route element={<ProtectedRoute requiredRole="ADMIN" />}>
             <Route path="/admin/dashboard" element={<AdminPanel />} />
           </Route>
           <Route path="/rooms" element={<Room />} />
           <Route path="/roomDetail/:id" element={<RoomDetails />} />
-          <Route path="/bookings" element={<Bookings />} />
+          <Route element={<ProtectedRoute redirectPath="/?login=1&redirect=%2Fbookings" />}>
+            <Route path="/bookings" element={<Bookings />} />
+          </Route>
           <Route path="/about" element={<About />} />
         </Routes>
       </Router>

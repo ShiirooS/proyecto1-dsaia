@@ -1,5 +1,5 @@
 
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000';
+import api from './axiosConfig';
 
 export interface HotelDTO {
     id: number;
@@ -20,57 +20,24 @@ export interface HotelDTO {
     // Otros campos de reseña según sea necesario
   }
   
-// Get all hotels
 export async function fetchHotels(): Promise<HotelDTO[]> {
-  const response = await fetch(`${API_URL}/api/hotel/get-all`);
-  if (!response.ok) {
-    throw new Error('Failed to fetch hotels');
-  }
-  return response.json();
+  const response = await api.get('/api/hotel/get-all');
+  return response.data as HotelDTO[];
 }
-// Create hotel
+
 export async function createHotel(data: HotelDTO): Promise<void> {
-  const response = await fetch(`${API_URL}/api/hotel/registration-hotel`, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify(data),
-  });
-
-  if (!response.ok) {
-    throw new Error('Failed to create hotel');
-  }
+  await api.post('/api/hotel/registration-hotel', data);
 }
-// Update hotel
+
 export async function updateHotel(id: number, data: HotelDTO): Promise<void> {
-  const response = await fetch(`${API_URL}/api/hotel/update-hotel/${id}`, {
-    method: 'PUT',
-    headers: {
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify(data),
-  });
-
-  if (!response.ok) {
-    throw new Error('Failed to update hotel');
-  }
+  await api.put(`/api/hotel/update-hotel/${id}`, data);
 }
-// Delete hotel
+
 export async function deleteHotel(id: number): Promise<void> {
-  const response = await fetch(`${API_URL}/api/hotel/delete-hotel/${id}`, {
-    method: 'DELETE',
-  });
-
-  if (!response.ok) {
-    throw new Error('Failed to delete hotel');
-  }
+  await api.delete(`/api/hotel/delete-hotel/${id}`);
 }
-// Get hotel by ID
+
 export async function fetchHotelById(id: number): Promise<HotelDTO> {
-  const response = await fetch(`${API_URL}/api/hotel/get-hotel/${id}`);
-  if (!response.ok) {
-    throw new Error('Failed to fetch hotel');
-  }
-  return response.json();
+  const response = await api.get(`/api/hotel/get-hotel/${id}`);
+  return response.data as HotelDTO;
 }
