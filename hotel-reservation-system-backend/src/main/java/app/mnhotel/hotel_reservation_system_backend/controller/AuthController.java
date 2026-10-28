@@ -7,11 +7,13 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
+import app.mnhotel.hotel_reservation_system_backend.exception.ConflictException;
 import app.mnhotel.hotel_reservation_system_backend.repository.UserRepository;
 import app.mnhotel.hotel_reservation_system_backend.request.LoginRequest;
 import app.mnhotel.hotel_reservation_system_backend.request.RegisterRequest;
 import app.mnhotel.hotel_reservation_system_backend.response.AuthResponse;
 import app.mnhotel.hotel_reservation_system_backend.service.AuthService;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 
 @CrossOrigin(origins = "http://localhost:5173") // Reemplaza esto con el dominio de tu frontend
@@ -35,14 +37,14 @@ public class AuthController {
 	    
 	    // API que registra un nuevo usuario.
 	    @PostMapping("/registration-user")
-	    public ResponseEntity<AuthResponse> registerUser(@RequestBody RegisterRequest request)
+	    public ResponseEntity<AuthResponse> registerUser(@Valid @RequestBody RegisterRequest request)
 		{	
+	    	request.setUsername(request.getUsername().trim().toLowerCase());
 	    	if (userRepository.existsByUsername(request.getUsername())) {
-	            // El nombre de usuario ya está en uso, devolver un mensaje de error
-	            return ResponseEntity.badRequest().body(new AuthResponse("El nombre de usuario ya está en uso"));
-	        } else {
-	            return ResponseEntity.ok(authService.registerUser(request));
+	            // HU-04: 409 con código estable (antes 400 con el mensaje dentro del campo "token")
+	            throw new ConflictException("USERNAME_ALREADY_EXISTS", "El nombre de usuario ya está en uso");
 	        }
+	        return ResponseEntity.ok(authService.registerUser(request));
 	    }
 
 }

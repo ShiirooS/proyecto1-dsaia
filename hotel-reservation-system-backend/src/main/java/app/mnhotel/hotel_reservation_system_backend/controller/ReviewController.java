@@ -16,6 +16,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 import app.mnhotel.hotel_reservation_system_backend.dto.ReviewDTO;
 import app.mnhotel.hotel_reservation_system_backend.response.ApiResponse;
+import app.mnhotel.hotel_reservation_system_backend.service.CurrentUserService;
 import app.mnhotel.hotel_reservation_system_backend.service.ReviewService;
 
 @RestController
@@ -24,10 +25,21 @@ public class ReviewController {
 	 	@Autowired
 	    private ReviewService reviewService;
 
+	 	@Autowired
+	 	private CurrentUserService currentUserService;
+
 	    @PostMapping("/registration-review")
 	    public ResponseEntity<ApiResponse> createReview(@RequestBody ReviewDTO reviewRequest) {
+	    	// HU-04: al crear, el id nunca se toma del body (con un id ajeno save() sobrescribía ese registro)
+	    	if (reviewRequest != null) {
+	    		reviewRequest.setId(null);
+	    	}
 	        if (reviewRequest == null) {
 	            return ResponseEntity.badRequest().body(new ApiResponse("Error: la solicitud está vacía"));
+	        }
+	        // HU-04: la reseña siempre queda a nombre de quien la publica (salvo ADMIN)
+	        if (!currentUserService.isAdmin()) {
+	            reviewRequest.setUserId(currentUserService.getCurrentUser().getId());
 	        }
 	        try {
 	            reviewService.createReview(reviewRequest);

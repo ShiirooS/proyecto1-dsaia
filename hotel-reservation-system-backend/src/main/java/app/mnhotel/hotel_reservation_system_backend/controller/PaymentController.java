@@ -15,6 +15,7 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 import app.mnhotel.hotel_reservation_system_backend.dto.PaymentDTO;
+import app.mnhotel.hotel_reservation_system_backend.exception.BusinessException;
 import app.mnhotel.hotel_reservation_system_backend.response.ApiResponse;
 import app.mnhotel.hotel_reservation_system_backend.service.PaymentService;
 
@@ -27,6 +28,10 @@ public class PaymentController {
 	 
 	 @PostMapping("/registration-payment")
 	    public ResponseEntity<ApiResponse> createPayment(@RequestBody PaymentDTO paymentRequest){
+	    	// HU-04: al crear, el id nunca se toma del body (con un id ajeno save() sobrescribía ese registro)
+	    	if (paymentRequest != null) {
+	    		paymentRequest.setId(null);
+	    	}
 	        
 	        if(paymentRequest==null){
 	            return ResponseEntity.badRequest().body(new ApiResponse("Error: la solicitud están vacíos"));
@@ -74,6 +79,9 @@ public class PaymentController {
 	                return ResponseEntity.status(HttpStatus.NOT_FOUND)
 	                        .body(new ApiResponse("Payment no encontrado con ID: " + id));
 	            }
+	        }catch(BusinessException e){
+	            // 404 PAYMENT_NOT_FOUND: no convertirlo en 500
+	            throw e;
 	        }catch(RuntimeException e){
 	            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
 	                    .body(new ApiResponse("Error al obtener la payment: " + e.getMessage()));

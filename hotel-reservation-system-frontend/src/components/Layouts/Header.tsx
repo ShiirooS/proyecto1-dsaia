@@ -1,18 +1,20 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
 import { useState } from 'react';
-import { Link } from 'react-router-dom'; // Importa Link
+import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import Button from '../Buttons/Button';
 import ButtonSecondary from '../Buttons/ButtonSecondary';
 import LoginUser from '../../pages/LoginPage';
 import RegisterUser from '../../pages/RegisterPage';
 import ProfileCircle from '../Profile/ProfileCircle';
-import { login } from '../../services/authService'; // Asegúrate de que esta función maneje el inicio de sesión
+import { useAuth } from '../../contexts/AuthContext';
 import { RxHamburgerMenu } from "react-icons/rx";
 import { IoMdClose } from "react-icons/io";
 
 export default function Header() {
-  const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false);
-  const [modalType, setModalType] = useState<string | null>(null);
+  const { isAuthenticated, isAdmin, user, login, logout } = useAuth();
+  const [searchParams] = useSearchParams();
+  const navigate = useNavigate();
+  const [modalType, setModalType] = useState<string | null>(searchParams.get('login') === '1' ? 'login' : null);
   const [isMenuOpen, setIsMenuOpen] = useState<boolean>(false); // Estado para el menú
 
   const openModal = (type: string) => {
@@ -23,14 +25,13 @@ export default function Header() {
     setModalType(null);
   };
   const handleLogin = async (username: string, password: string) => {
-    try {
-      await login(username, password);
-      setIsAuthenticated(true); // Actualiza el estado a autenticado
-    } catch (error) {
-      console.error('Login failed:', error);
+    await login(username, password);
+    const redirect = searchParams.get('redirect');
+    if (redirect && redirect.startsWith('/') && !redirect.startsWith('//')) {
+      navigate(redirect, { replace: true });
     }
   };
-  
+
   const toggleMenu = () => {
     setIsMenuOpen(!isMenuOpen);
   };
@@ -77,6 +78,13 @@ export default function Header() {
               About Us
               </Link>
             </li>
+            {isAdmin && (
+              <li>
+                <Link to="/admin/dashboard" className="text-gray-800 transition hover:text-gray-300/70 md:text-gray-200">
+                  Admin
+                </Link>
+              </li>
+            )}
             {/* Register button visible only on mobile */}
             <li className="md:hidden">
               <ButtonSecondary content='Register' onClick={() => openModal('register')} className={''} />
@@ -92,7 +100,11 @@ export default function Header() {
                 <ButtonSecondary content='Register' onClick={() => openModal('register')} className={'hidden sm:block'} />
               </div>
             ) : (
-              <div className="flex items-center">
+              <div className="flex items-center gap-3">
+                <span className="hidden text-sm text-gray-200 sm:inline">{user?.fullName || user?.username}</span>
+                <button type="button" onClick={logout} className="text-sm text-gray-200 underline hover:text-gray-300/70">
+                  Cerrar sesión
+                </button>
                 <ProfileCircle />
               </div>
             )}

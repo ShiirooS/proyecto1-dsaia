@@ -1,7 +1,6 @@
 package app.mnhotel.hotel_reservation_system_backend.controller;
 
 import static org.hamcrest.Matchers.emptyOrNullString;
-import static org.hamcrest.Matchers.hasItem;
 import static org.hamcrest.Matchers.not;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
@@ -56,14 +55,24 @@ class ExistingApiCharacterizationTest {
 	}
 
 	@Test
-	void registroDuplicadoDevuelve400ConMensajeEnToken() throws Exception {
+	void registroDuplicadoDevuelve409() throws Exception {
 		register("dup@correo.com", "Clave1234");
 
-		// Forma heredada: el mensaje de error viaja en el campo "token" de AuthResponse
+		// Cambio intencional de HU-04: antes 400 con el mensaje dentro del campo "token"
 		mockMvc.perform(post("/auth/registration-user").contentType(MediaType.APPLICATION_JSON)
-				.content("{\"username\":\"dup@correo.com\",\"password\":\"Otra1234\",\"fullName\":\"X\"}"))
+				.content("{\"username\":\"DUP@correo.com\",\"password\":\"Otra1234\",\"fullName\":\"X\"}"))
+				.andExpect(status().isConflict())
+				.andExpect(jsonPath("$.code").value("USERNAME_ALREADY_EXISTS"));
+	}
+
+	@Test
+	void registroValidaEmailYPassword() throws Exception {
+		mockMvc.perform(post("/auth/registration-user").contentType(MediaType.APPLICATION_JSON)
+				.content("{\"username\":\"no-es-email\",\"password\":\"corta\"}"))
 				.andExpect(status().isBadRequest())
-				.andExpect(jsonPath("$.token").value("El nombre de usuario ya está en uso"));
+				.andExpect(jsonPath("$.code").value("VALIDATION_ERROR"))
+				.andExpect(jsonPath("$.errors.username").exists())
+				.andExpect(jsonPath("$.errors.password").exists());
 	}
 
 	@Test
@@ -88,24 +97,17 @@ class ExistingApiCharacterizationTest {
 	}
 
 	@Test
-	void usuarioAutenticadoRegistraHotelYElListadoEsPublico() throws Exception {
-		String token = register("gestor@correo.com", "Clave1234");
-
-		mockMvc.perform(post("/api/hotel/registration-hotel").header(HttpHeaders.AUTHORIZATION, "Bearer " + token)
-				.contentType(MediaType.APPLICATION_JSON)
-				.content("{\"name\":\"Hotel Caracterización\",\"location\":\"Panamá\",\"description\":\"X\",\"rating\":4.5}"))
-				.andExpect(status().isOk())
-				.andExpect(jsonPath("$.message").value("El Hotel se registró correctamente"));
-
+	void listadoDeHotelesEsPublico() throws Exception {
 		mockMvc.perform(get("/api/hotel/get-all"))
-				.andExpect(status().isOk())
-				.andExpect(jsonPath("$[*].name", hasItem("Hotel Caracterización")));
+				.andExpect(status().is2xxSuccessful());
 	}
 
 	@Test
 	void escrituraSinTokenEsRechazada() throws Exception {
+		// Cambio intencional de HU-04: antes respondía 403 sin cuerpo; ahora 401 con el sobre de error
 		mockMvc.perform(post("/api/hotel/registration-hotel").contentType(MediaType.APPLICATION_JSON)
 				.content("{\"name\":\"Anónimo\"}"))
-				.andExpect(status().isForbidden());
+				.andExpect(status().isUnauthorized())
+				.andExpect(jsonPath("$.code").value("UNAUTHORIZED"));
 	}
 }

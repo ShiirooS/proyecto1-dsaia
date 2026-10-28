@@ -54,8 +54,10 @@ public class AuthServiceImp implements AuthService{
 	@Override
 	public AuthResponse loginUser(LoginRequest request) {
 		// TODO Auto-generated method stub
-		authenticationManager.authenticate(new UsernamePasswordAuthenticationToken(request.getUsername(), request.getPassword()));
-        UserDetails user=userRepository.findByUsername(request.getUsername()).orElseThrow();
+		// Los emails se guardan en minúsculas: el login no distingue mayúsculas
+		String username = request.getUsername() == null ? "" : request.getUsername().trim().toLowerCase();
+		authenticationManager.authenticate(new UsernamePasswordAuthenticationToken(username, request.getPassword()));
+        UserDetails user=userRepository.findByUsername(username).orElseThrow();
         String token=jwtService.getToken(user);
         return AuthResponse.builder()
             .token(token)

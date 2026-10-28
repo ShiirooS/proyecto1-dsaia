@@ -9,6 +9,13 @@ export interface RegisterDTO {
     createdAt?: string; // Formato de fecha ISO
     role?: string; // Opcional según tu modelo
 }
+export class LoginError extends Error {
+    constructor(public readonly status: number) {
+      super('Login failed');
+      this.name = 'LoginError';
+    }
+}
+
 export async function login(username: string, password: string) {
     const response = await fetch(`${API_URL}/auth/login`, {
       method: 'POST',
@@ -19,7 +26,7 @@ export async function login(username: string, password: string) {
     });
   
     if (!response.ok) {
-      throw new Error('Login failed');
+      throw new LoginError(response.status);
     }
   
     const data = await response.json();

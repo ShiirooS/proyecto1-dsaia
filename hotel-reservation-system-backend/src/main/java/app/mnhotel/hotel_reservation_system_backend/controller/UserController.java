@@ -18,8 +18,10 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 import app.mnhotel.hotel_reservation_system_backend.dto.RoomDTO;
 import app.mnhotel.hotel_reservation_system_backend.dto.UserDTO;
+import app.mnhotel.hotel_reservation_system_backend.exception.BusinessException;
 import app.mnhotel.hotel_reservation_system_backend.request.RegisterRequest;
 import app.mnhotel.hotel_reservation_system_backend.response.ApiResponse;
+import app.mnhotel.hotel_reservation_system_backend.service.CurrentUserService;
 import app.mnhotel.hotel_reservation_system_backend.service.RoomService;
 import app.mnhotel.hotel_reservation_system_backend.service.UserService;
 import app.mnhotel.hotel_reservation_system_backend.entity.User;
@@ -32,6 +34,11 @@ import lombok.RequiredArgsConstructor;
 public class UserController {
 	@Autowired
     private UserService userService;
+
+	@Autowired
+	private CurrentUserService currentUserService;
+
+	private static final String USER_NOT_FOUND = "USER_NOT_FOUND";
 	
 	// API para crear un hotel.
 	@PostMapping("/registration-user")
@@ -64,8 +71,17 @@ public class UserController {
 	// API para editar un hotel by ID.
 	@PutMapping("/update-user/{id}")
 	public ResponseEntity<ApiResponse> updateUser(@PathVariable Long id, @RequestBody UserDTO userDTO) {
+		    // HU-04: cada usuario solo edita su propio perfil (ADMIN puede editar cualquiera)
+		    currentUserService.checkOwnerOrAdmin(id, USER_NOT_FOUND, "User no encontrado con ID: " + id);
+		    // HU-04: el username (email de acceso) solo lo cambia un ADMIN; el rol nunca se cambia por aquí
+		    if (!currentUserService.isAdmin()) {
+		        userDTO.setUsername(null);
+		    }
+		    userDTO.setRole(null);
 		    try {
 		        return ResponseEntity.ok(userService.updateUser(id,userDTO));
+		    } catch (BusinessException e) {
+		        throw e;
 		    } catch (Exception e) {
 		        e.printStackTrace(); // Para depuración
 		        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
@@ -92,7 +108,8 @@ public class UserController {
 	// API para obtener un producto by ID.
     @GetMapping("/get-user/{id}")
     public ResponseEntity<?> findUserById(@PathVariable Long id) throws Exception {
-    	
+    	// HU-04: un USER solo puede consultar su propio usuario
+    	currentUserService.checkOwnerOrAdmin(id, USER_NOT_FOUND, "User no encontrado con ID: " + id);
         try {
         	 Optional<UserDTO> user = userService.getUser(id);
              // Verifica si el Optional contiene un valor

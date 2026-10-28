@@ -44,8 +44,17 @@ Para clonar este repositorio y comenzar a trabajar con el sistema de reservas de
    ./mvnw test                     # pruebas automatizadas (perfil test con H2)
    ```
 
+   Usuarios de demostración del perfil dev: `admin@hotel.com` / `Admin12345` (ADMIN) y `demo@hotel.com` / `Demo12345` (USER).
+
    Para usar PostgreSQL: `docker compose up -d` en la raíz y luego
-   `SPRING_PROFILES_ACTIVE=postgres ./mvnw spring-boot:run` (variables `DB_URL`, `DB_USERNAME`, `DB_PASSWORD`).
+   `SPRING_PROFILES_ACTIVE=postgres ./mvnw spring-boot:run` con estas variables:
+
+   | Variable | Obligatoria | Uso |
+   |----------|-------------|-----|
+   | `JWT_SECRET` | Sí (sin ella la app no arranca) | Base64 de al menos 32 bytes: `openssl rand -base64 32` |
+   | `DB_URL`, `DB_USERNAME`, `DB_PASSWORD` | No (valores del docker-compose) | Conexión a PostgreSQL |
+   | `ADMIN_USERNAME`, `ADMIN_PASSWORD` | Para tener un administrador | Crea el primer ADMIN al arrancar (idempotente) |
+   | `CORS_ALLOWED_ORIGINS` | No (`http://localhost:5173`) | Orígenes del frontend separados por coma |
 
 4. **Frontend** (Node 20+, npm):
 

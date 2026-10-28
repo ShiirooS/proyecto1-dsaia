@@ -5,7 +5,9 @@ import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.function.Function;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.core.userdetails.UserDetails;
+import app.mnhotel.hotel_reservation_system_backend.entity.User;
 import app.mnhotel.hotel_reservation_system_backend.jwt.JwtService;
 import org.springframework.stereotype.Service;
 import io.jsonwebtoken.Claims;
@@ -17,10 +19,27 @@ import io.jsonwebtoken.security.Keys;
 @Service
 public class JwtServiceImp implements JwtService{
 
-	private static final String SECRET_KEY="586E3272357538782F413F4428472B4B6250655368566B597033733676397924";
+	// El secreto ya no está en el código: se lee de app.jwt.secret (variable JWT_SECRET, Base64 de >= 32 bytes).
+	// Sin valor por defecto fuera de dev/test: la aplicación no arranca si falta (HU-04).
+	private final Key key;
+	private final long expirationMs;
+
+	public JwtServiceImp(@Value("${app.jwt.secret}") String secret,
+			@Value("${app.jwt.expiration-ms}") long expirationMs) {
+		// hmacShaKeyFor lanza WeakKeyException si la clave tiene menos de 256 bits
+		this.key = Keys.hmacShaKeyFor(Decoders.BASE64.decode(secret));
+		this.expirationMs = expirationMs;
+	}
+
+    // Claim con el id inmutable del usuario: el username (email) puede cambiar
+    private static final String UID_CLAIM = "uid";
 
     public String getToken(UserDetails user) {
-        return getToken(new HashMap<>(), user);
+        Map<String, Object> claims = new HashMap<>();
+        if (user instanceof User appUser) {
+            claims.put(UID_CLAIM, appUser.getId());
+        }
+        return getToken(claims, user);
     }
 
     private String getToken(Map<String,Object> extraClaims, UserDetails user) {
@@ -29,14 +48,9 @@ public class JwtServiceImp implements JwtService{
             .setClaims(extraClaims)
             .setSubject(user.getUsername())
             .setIssuedAt(new Date(System.currentTimeMillis()))
-            .setExpiration(new Date(System.currentTimeMillis()+1000*60*60*24))
-            .signWith(getKey(), SignatureAlgorithm.HS256)
+            .setExpiration(new Date(System.currentTimeMillis()+expirationMs))
+            .signWith(key, SignatureAlgorithm.HS256)
             .compact();
-    }
-
-    private Key getKey() {
-       byte[] keyBytes=Decoders.BASE64.decode(SECRET_KEY);
-       return Keys.hmacShaKeyFor(keyBytes);
     }
 
     public String getUsernameFromToken(String token) {
@@ -45,14 +59,24 @@ public class JwtServiceImp implements JwtService{
 
     public boolean isTokenValid(String token, UserDetails userDetails) {
         final String username=getUsernameFromToken(token);
-        return (username.equals(userDetails.getUsername())&& !isTokenExpired(token));
+        return (username.equals(userDetails.getUsername()) && !isTokenExpired(token) && sameUser(token, userDetails));
+    }
+
+    // HU-04: si un ADMIN renombra una cuenta y otra persona se registra con el email anterior,
+    // el token viejo (mismo sub) no debe servir para la cuenta nueva: se compara el id inmutable
+    private boolean sameUser(String token, UserDetails userDetails) {
+        if (!(userDetails instanceof User appUser)) {
+            return true;
+        }
+        Object uid = getAllClaims(token).get(UID_CLAIM);
+        return uid != null && appUser.getId() != null && appUser.getId().equals(((Number) uid).longValue());
     }
 
     private Claims getAllClaims(String token)
     {
         return Jwts
             .parserBuilder()
-            .setSigningKey(getKey())
+            .setSigningKey(key)
             .build()
             .parseClaimsJws(token)
             .getBody();
