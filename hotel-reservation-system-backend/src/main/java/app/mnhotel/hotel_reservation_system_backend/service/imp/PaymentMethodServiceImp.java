@@ -61,6 +61,7 @@ public class PaymentMethodServiceImp implements PaymentMethodService {
 	@Override
 	@Transactional
 	public PaymentMethodDTO createPaymentMethod(PaymentMethodRequest request) {
+		CardValidator.checkFormat(request.getCardNumber(), request.getCvv());
 		User user = currentUserService.getCurrentUser();
 		ValidatedCard card = CardValidator.validate(request.getCardNumber(), request.getExpMonth(), request.getExpYear(),
 				request.getCvv(), request.getHolderName(), YearMonth.now(clock));

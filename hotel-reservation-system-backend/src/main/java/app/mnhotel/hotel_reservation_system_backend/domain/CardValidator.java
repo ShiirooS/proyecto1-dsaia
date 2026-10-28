@@ -37,6 +37,19 @@ public final class CardValidator {
 				holderName.trim().toUpperCase(Locale.ROOT));
 	}
 
+	/**
+	 * Formato (400 VALIDATION_ERROR) antes de cualquier otra regla: 13 a 19 dígitos tras quitar espacios y guiones,
+	 * y CVV de 3 o 4 dígitos. Los mensajes son fijos y nunca incluyen el valor recibido.
+	 */
+	public static void checkFormat(String cardNumber, String cvv) {
+		if (!normalize(cardNumber).matches("[0-9]{13,19}")) {
+			throw new BusinessException(HttpStatus.BAD_REQUEST, "VALIDATION_ERROR", "El número de tarjeta debe tener entre 13 y 19 dígitos");
+		}
+		if (cvv == null || !cvv.matches("[0-9]{3,4}")) {
+			throw new BusinessException(HttpStatus.BAD_REQUEST, "VALIDATION_ERROR", "El código de seguridad debe tener 3 o 4 dígitos");
+		}
+	}
+
 	public static void checkNotExpired(int expMonth, int expYear, YearMonth currentMonth) {
 		if (YearMonth.of(expYear, expMonth).isBefore(currentMonth)) {
 			throw new BusinessException(HttpStatus.UNPROCESSABLE_ENTITY, "CARD_EXPIRED", "La tarjeta está vencida");

@@ -19,6 +19,8 @@ import app.mnhotel.hotel_reservation_system_backend.dto.ReservationDTO;
 import app.mnhotel.hotel_reservation_system_backend.entity.Reservation;
 import app.mnhotel.hotel_reservation_system_backend.exception.ResourceNotFoundException;
 import app.mnhotel.hotel_reservation_system_backend.repository.ReservationRepository;
+import app.mnhotel.hotel_reservation_system_backend.repository.RoomRepository;
+import org.springframework.transaction.annotation.Transactional;
 import app.mnhotel.hotel_reservation_system_backend.service.ReservationService;
 
 @Service
@@ -26,6 +28,8 @@ public class ReservationServiceImp implements ReservationService{
 
     @Autowired
     private ReservationRepository reservationRepository;
+    @Autowired
+    private RoomRepository roomRepository;
 	@Autowired
 	private UserServiceImp userService;
 	@Autowired
@@ -91,12 +95,15 @@ public class ReservationServiceImp implements ReservationService{
 			throw new BusinessException(HttpStatus.UNPROCESSABLE_ENTITY, "INVALID_STAY_DATES",
 					"La fecha de salida debe ser posterior a la de llegada");
 		}
+		// ADR-005: con la fila de la habitación bloqueada, igual que en /book
+		roomRepository.findActiveByIdForUpdate(roomId);
 		if (reservationRepository.existsOverlapping(roomId, startDate, endDate, excludeId)) {
 			throw new ConflictException("ROOM_NOT_AVAILABLE", "La habitación no está disponible en esas fechas");
 		}
 	}
 
 	@Override
+	@Transactional
 	public ReservationDTO createReservation(ReservationDTO reservationDTO) throws Exception {
 		if (reservationDTO.getStatus() == null) {
 			reservationDTO.setStatus(ReservationStatus.CONFIRMED);
@@ -111,6 +118,7 @@ public class ReservationServiceImp implements ReservationService{
 	}
 
 	@Override
+	@Transactional
 	public ApiResponse updateReservation(Long id, ReservationDTO reservationDTO) throws Exception{
 		// TODO Auto-generated method stub
 		if (!reservationRepository.existsById(id)) {

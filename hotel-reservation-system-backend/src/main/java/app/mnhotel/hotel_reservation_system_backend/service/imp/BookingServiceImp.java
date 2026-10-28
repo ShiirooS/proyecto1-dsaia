@@ -13,6 +13,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Isolation;
 import org.springframework.transaction.annotation.Transactional;
 
 import app.mnhotel.hotel_reservation_system_backend.domain.CancellationPolicy;
@@ -67,7 +68,7 @@ public class BookingServiceImp implements BookingService {
 	private int maxNights;
 
 	@Override
-	@Transactional
+	@Transactional(isolation = Isolation.READ_COMMITTED)
 	public MyReservationDTO book(BookingRequest request) {
 		// 1. Exactamente una fuente de pago
 		boolean savedCard = request.getPaymentMethodId() != null;
@@ -75,6 +76,9 @@ public class BookingServiceImp implements BookingService {
 		if (savedCard == newCard || (request.isSaveCard() && !newCard)) {
 			throw new BusinessException(HttpStatus.BAD_REQUEST, "INVALID_PAYMENT_SOURCE",
 					"Indica una tarjeta guardada o una tarjeta nueva (no ambas)");
+		}
+		if (newCard) {
+			CardValidator.checkFormat(request.getCard().getCardNumber(), request.getCard().getCvv());
 		}
 
 		// 2. Recursos: la habitación debe estar activa y la tarjeta guardada ser del usuario del token
@@ -95,7 +99,9 @@ public class BookingServiceImp implements BookingService {
 		}
 
 		// 4. Con la fila de la habitación bloqueada, ninguna reserva confirmada puede compartir noches (ADR-005)
-		roomRepository.findActiveByIdForUpdate(room.getId());
+		// Se usa la fila leída bajo el bloqueo (precio y estado vigentes); si se desactivó entretanto -> 404
+		room = roomRepository.findActiveByIdForUpdate(room.getId())
+				.orElseThrow(() -> new ResourceNotFoundException("ROOM_NOT_FOUND", "Habitación no encontrada"));
 		if (reservationRepository.existsOverlapping(room.getId(), request.getCheckIn(), request.getCheckOut(), null)) {
 			throw new ConflictException("ROOM_NOT_AVAILABLE", "Esas fechas acaban de reservarse");
 		}

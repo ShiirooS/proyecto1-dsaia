@@ -4,7 +4,6 @@ import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
-import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Size;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -22,7 +21,8 @@ import lombok.ToString;
 public class PaymentMethodRequest {
 
 	@NotBlank
-	@Pattern(regexp = "^[0-9 -]{13,23}$", message = "debe tener entre 13 y 19 dígitos")
+	// Sin @Pattern: Bean Validation registra en DEBUG el valor rechazado. El formato se valida en
+	// CardValidator.checkFormat con un mensaje fijo que nunca incluye el número
 	@ToString.Exclude
 	private String cardNumber;
 
@@ -37,7 +37,6 @@ public class PaymentMethodRequest {
 	private Integer expYear;
 
 	@NotBlank
-	@Pattern(regexp = "^[0-9]{3,4}$", message = "debe tener 3 o 4 dígitos")
 	@ToString.Exclude
 	private String cvv;
 
