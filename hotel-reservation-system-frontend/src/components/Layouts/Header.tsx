@@ -1,5 +1,5 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import Button from '../Buttons/Button';
 import ButtonSecondary from '../Buttons/ButtonSecondary';
@@ -16,6 +16,11 @@ export default function Header() {
   const navigate = useNavigate();
   const [modalType, setModalType] = useState<string | null>(searchParams.get('login') === '1' ? 'login' : null);
   const [isMenuOpen, setIsMenuOpen] = useState<boolean>(false); // Estado para el menú
+
+  const loginRequested = searchParams.get('login') === '1';
+  useEffect(() => {
+    if (loginRequested) setModalType('login');
+  }, [loginRequested]);
 
   const openModal = (type: string) => {
     setModalType(type);

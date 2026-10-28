@@ -9,6 +9,7 @@ import { FiChevronUp,FiChevronDown } from "react-icons/fi";
 import ProfileEditModal from "./ProfileEditModal";
 import ChangePasswordModal from "./ChangePasswordModal";
 import { TbCalendarCheck } from "react-icons/tb";
+import { FaCreditCard } from "react-icons/fa";
 
 export default function ProfileCircule() {
   const [isOpen, setIsOpen] = useState(false)
@@ -103,6 +104,15 @@ export default function ProfileCircule() {
               >
                 <TbCalendarCheck size={24} className="mr-3 h-5 w-5 text-gray-400" />
                 Bookings
+              </button>
+            </Link>
+            <Link to="/payment-methods">
+              <button
+                className="w-full flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 hover:text-gray-900"
+                role="menuitem"
+              >
+                <FaCreditCard size={24} className="mr-3 h-5 w-5 text-gray-400" />
+                Payment methods
               </button>
             </Link>
             <button
