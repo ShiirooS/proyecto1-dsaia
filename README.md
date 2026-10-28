@@ -36,40 +36,30 @@ Para clonar este repositorio y comenzar a trabajar con el sistema de reservas de
    cd hotel-reservation-system
    ```
 
-3. **Configuración del Backend**:
+3. **Backend** (Java 17, sin instalar Maven: usa el wrapper):
 
-   - Asegúrate de tener [Spring Boot](https://spring.io/projects/spring-boot) instalado.
-   - Configura tu archivo `application.properties` con las credenciales de la base de datos y las credenciales de la API de Mercado Pago.
+   ```bash
+   cd hotel-reservation-system-backend
+   ./mvnw spring-boot:run          # perfil dev por defecto: H2 en memoria, sin dependencias externas
+   ./mvnw test                     # pruebas automatizadas (perfil test con H2)
+   ```
 
-4. **Configuración del Frontend**:
+   Para usar PostgreSQL: `docker compose up -d` en la raíz y luego
+   `SPRING_PROFILES_ACTIVE=postgres ./mvnw spring-boot:run` (variables `DB_URL`, `DB_USERNAME`, `DB_PASSWORD`).
 
-   - Asegúrate de tener [Node.js](https://nodejs.org/) y [Yarn](https://classic.yarnpkg.com/) instalados.
-   - Instala las dependencias del frontend:
+4. **Frontend** (Node 20+, npm):
 
-     ```bash
-     cd frontend
-     yarn install
-     ```
+   ```bash
+   cd hotel-reservation-system-frontend
+   npm ci
+   npm run dev                     # http://localhost:5173 (API en http://localhost:3000 o VITE_API_URL)
+   npm test                        # Vitest + Testing Library
+   ```
 
-   - Inicia el servidor de desarrollo:
+5. **Integración continua**: `.github/workflows/ci.yml` ejecuta las pruebas de backend y frontend en cada push y Pull Request.
 
-     ```bash
-     yarn dev
-     ```
+6. **Documentación del sprint**: ver `docs/` (arquitectura, contrato de API, ADRs, historias de usuario y bitácora de uso de IA).
 
-5. **Base de Datos**:
-
-   - Asegúrate de tener [PostgreSQL](https://www.postgresql.org/) instalado y en funcionamiento.
-   - Configura la base de datos y aplica las migraciones necesarias.
-
-6. **Iniciar el Backend**:
-
-   - Navega al directorio del backend y ejecuta la aplicación:
-
-     ```bash
-     cd backend
-     ./mvnw spring-boot:run
-     ```
 ## Vista Previa Diagrama
 
 Puedes ver una vista del Diagrama de Entidad-Relación (ER o MER). [![db-hotel.png](https://i.postimg.cc/CMbTmSvT/db-hotel.png)](https://postimg.cc/Lh4bsKKN)
