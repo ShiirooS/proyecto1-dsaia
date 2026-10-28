@@ -1,3 +1,4 @@
+import { toPathId } from './pathId';
 
 import api from './axiosConfig';
 
@@ -30,14 +31,14 @@ export async function createHotel(data: HotelDTO): Promise<void> {
 }
 
 export async function updateHotel(id: number, data: HotelDTO): Promise<void> {
-  await api.put(`/api/hotel/update-hotel/${id}`, data);
+  await api.put(`/api/hotel/update-hotel/${toPathId(id)}`, data);
 }
 
 export async function deleteHotel(id: number): Promise<void> {
-  await api.delete(`/api/hotel/delete-hotel/${id}`);
+  await api.delete(`/api/hotel/delete-hotel/${toPathId(id)}`);
 }
 
 export async function fetchHotelById(id: number): Promise<HotelDTO> {
-  const response = await api.get(`/api/hotel/get-hotel/${id}`);
+  const response = await api.get(`/api/hotel/get-hotel/${toPathId(id)}`);
   return response.data as HotelDTO;
 }
