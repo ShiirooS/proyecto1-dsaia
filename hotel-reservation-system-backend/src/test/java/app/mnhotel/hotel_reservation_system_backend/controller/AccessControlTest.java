@@ -147,7 +147,11 @@ class AccessControlTest {
 		mockMvc.perform(as(token, delete("/api/user/delete-user/{id}", beto.getId()))).andExpect(status().isForbidden());
 		mockMvc.perform(as(token, get("/api/reservation/get-all"))).andExpect(status().isForbidden());
 		mockMvc.perform(as(token, get("/api/payment/get-all"))).andExpect(status().isForbidden());
-		mockMvc.perform(as(token, get("/api/admin/analytics/demand-forecast"))).andExpect(status().isForbidden());
+		mockMvc.perform(as(token, get("/api/reservation/get-reservation/{id}", 1))).andExpect(status().isForbidden());
+		mockMvc.perform(as(token, put("/api/review/update-review/{id}", 1)).contentType(MediaType.APPLICATION_JSON)
+				.content("{\"rating\":1}"))
+				.andExpect(status().isForbidden());
+		mockMvc.perform(as(token, get("/api/analytics/demand-forecast"))).andExpect(status().isForbidden());
 
 		assertThat(roomRepository.findById(room.getId()).orElseThrow().getPricePerNight()).isEqualTo(100);
 	}
@@ -183,28 +187,49 @@ class AccessControlTest {
 	}
 
 	@Test
-	void reservaQuedaANombreDeQuienReservaYNoEsVisibleParaOtros() throws Exception {
-		String tokenAna = login(ana);
+	void endpointsHeredadosDeReservasSonSoloDeAdmin() throws Exception {
 		String body = """
 				{"startDate":"2026-12-20T15:00:00","endDate":"2026-12-23T11:00:00","status":"CONFIRMED",
 				 "roomId":%d,"userId":%d}
 				""".formatted(room.getId(), beto.getId());
 
-		mockMvc.perform(as(tokenAna, post("/api/reservation/registration-reservation")).contentType(MediaType.APPLICATION_JSON)
+		// El huésped reserva por los flujos nuevos (/api/reservation/book, HU-01), no por el CRUD administrativo
+		mockMvc.perform(as(login(ana), post("/api/reservation/registration-reservation")).contentType(MediaType.APPLICATION_JSON)
+				.content(body))
+				.andExpect(status().isForbidden());
+
+		mockMvc.perform(as(login(admin), post("/api/reservation/registration-reservation")).contentType(MediaType.APPLICATION_JSON)
 				.content(body))
 				.andExpect(status().isOk());
-
 		Reservation saved = reservationRepository.findAll().stream()
 				.filter(r -> r.getRoom() != null && r.getRoom().getId().equals(room.getId())).findFirst().orElseThrow();
-		// El userId de Beto que venía en el body se ignora
-		assertThat(saved.getUser().getId()).isEqualTo(ana.getId());
+		assertThat(saved.getUser().getId()).isEqualTo(beto.getId());
+	}
 
-		mockMvc.perform(as(tokenAna, get("/api/reservation/get-reservation/{id}", saved.getId()))).andExpect(status().isOk());
-		mockMvc.perform(as(login(beto), get("/api/reservation/get-reservation/{id}", saved.getId())))
-				.andExpect(status().isNotFound())
-				.andExpect(jsonPath("$.code").value("RESERVATION_NOT_FOUND"));
-		mockMvc.perform(as(login(admin), get("/api/reservation/get-reservation/{id}", saved.getId())))
+	@Test
+	void unUsuarioNoPuedeCambiarSuUsernameYElAdminNoPuedeDuplicarlo() throws Exception {
+		mockMvc.perform(as(login(ana), put("/api/user/update-user/{id}", ana.getId())).contentType(MediaType.APPLICATION_JSON)
+				.content("{\"username\":\"rbac-otro@correo.com\",\"fullName\":\"Ana Actualizada\",\"role\":\"ADMIN\"}"))
 				.andExpect(status().isOk());
+		User updated = userRepository.findById(ana.getId()).orElseThrow();
+		assertThat(updated.getUsername()).isEqualTo(ana.getUsername());
+		assertThat(updated.getFullName()).isEqualTo("Ana Actualizada");
+		assertThat(updated.getRole()).isEqualTo(RoleType.USER);
+
+		mockMvc.perform(as(login(admin), put("/api/user/update-user/{id}", beto.getId())).contentType(MediaType.APPLICATION_JSON)
+				.content("{\"username\":\"" + ana.getUsername() + "\"}"))
+				.andExpect(status().isConflict())
+				.andExpect(jsonPath("$.code").value("USERNAME_ALREADY_EXISTS"));
+	}
+
+	@Test
+	void tokenFirmadoConElSecretoHeredadoDelCodigoEsRechazado() throws Exception {
+		// Valor que developer tenía fijo en JwtServiceImp: ya no debe servir para firmar tokens
+		var legacyKey = Keys.hmacShaKeyFor(Decoders.BASE64.decode("586E3272357538782F413F4428472B4B6250655368566B597033733676397924"));
+		String forged = Jwts.builder().setSubject(admin.getUsername()).setExpiration(new Date(System.currentTimeMillis() + 3_600_000))
+				.signWith(legacyKey, SignatureAlgorithm.HS256).compact();
+
+		mockMvc.perform(as(forged, get("/api/user/get-all"))).andExpect(status().isUnauthorized());
 	}
 
 	@Test

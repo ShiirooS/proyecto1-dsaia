@@ -55,14 +55,24 @@ class ExistingApiCharacterizationTest {
 	}
 
 	@Test
-	void registroDuplicadoDevuelve400ConMensajeEnToken() throws Exception {
+	void registroDuplicadoDevuelve409() throws Exception {
 		register("dup@correo.com", "Clave1234");
 
-		// Forma heredada: el mensaje de error viaja en el campo "token" de AuthResponse
+		// Cambio intencional de HU-04: antes 400 con el mensaje dentro del campo "token"
 		mockMvc.perform(post("/auth/registration-user").contentType(MediaType.APPLICATION_JSON)
-				.content("{\"username\":\"dup@correo.com\",\"password\":\"Otra1234\",\"fullName\":\"X\"}"))
+				.content("{\"username\":\"DUP@correo.com\",\"password\":\"Otra1234\",\"fullName\":\"X\"}"))
+				.andExpect(status().isConflict())
+				.andExpect(jsonPath("$.code").value("USERNAME_ALREADY_EXISTS"));
+	}
+
+	@Test
+	void registroValidaEmailYPassword() throws Exception {
+		mockMvc.perform(post("/auth/registration-user").contentType(MediaType.APPLICATION_JSON)
+				.content("{\"username\":\"no-es-email\",\"password\":\"corta\"}"))
 				.andExpect(status().isBadRequest())
-				.andExpect(jsonPath("$.token").value("El nombre de usuario ya está en uso"));
+				.andExpect(jsonPath("$.code").value("VALIDATION_ERROR"))
+				.andExpect(jsonPath("$.errors.username").exists())
+				.andExpect(jsonPath("$.errors.password").exists());
 	}
 
 	@Test
